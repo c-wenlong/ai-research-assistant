@@ -2,10 +2,10 @@ import streamlit as st
 from openai import OpenAI
 
 
-st.title("Chat with your reseach papers")
+st.title("Chat with your research papers")
 
 # Set OpenAI API key from Streamlit secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client = OpenAI(api_key=st.openai["OPENAI_API_KEY"])
 
 # Set a default model
 if "openai_model" not in st.session_state:

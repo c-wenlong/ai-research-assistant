@@ -14,7 +14,7 @@ def load_json_files(directory):
     return json_files
 
 # Load all JSON files from the directory
-json_files = load_json_files('./assets/papers/')
+json_files = load_json_files('../assets/papers/')
 
 # Add a "Clear selection" option to the file list
 file_options = ["Clear selection"] + list(json_files.keys())

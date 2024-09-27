@@ -1,2 +1,5 @@
-/myvenv/
-/.streamlit/
+myvenv/
+.streamlit/
+__pycache__/
+.DS_Store
+.vscode/

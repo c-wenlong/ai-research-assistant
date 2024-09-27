@@ -37,11 +37,11 @@ def create_multiselect(options):
 
 
 # Load all JSON files from the directory
-json_files = load_json_files("./assets/papers/")
+json_files = load_json_files("../assets/papers/")
 
 # Streamlit app
 st.set_page_config(layout="wide")  # Set the layout to wide mode
-st.title("Article Information")
+st.title("Papers")
 
 # Process all files
 all_data = []
