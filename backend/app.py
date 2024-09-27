@@ -3,7 +3,9 @@ from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 import asyncio
-from scrape_optimized import main  # Ensure this imports your async main function
+from web_scrape.scrape_optimized import main  # Ensure this imports your async main function
+from llm_playground import rag_function as rf
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
@@ -27,16 +29,14 @@ def get_articles_summarized():
         print(f"Error fetching summarized articles: {e}")
         return jsonify({"error": "Failed to fetch summarized articles"}), 500
 
-@app.route('/articles-raw', methods=['GET'])
-def get_articles_raw():
-    try:
-        articles = list(raw_collection.find())
-        for article in articles:
-            article['_id'] = str(article['_id'])  # Convert ObjectId to string
-        return jsonify(articles), 200
-    except Exception as e:
-        print(f"Error fetching raw articles: {e}")
-        return jsonify({"error": "Failed to fetch raw articles"}), 500
+@app.route('/api/get_response', methods=['POST'])
+def get_response():
+    data = request.json
+    user_input = data.get("user_input")
+    
+    response = rf.llm_output(user_input) 
+    
+    return jsonify({"response": response})
     
 @app.route('/search', methods=['POST'])
 def search_articles():
