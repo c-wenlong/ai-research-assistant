@@ -4,18 +4,14 @@ import pandas as pd
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-import dash
-from dash import html
-import dash_ag_grid as dag
-
 # Set the page configuration
 st.set_page_config(layout="wide", page_title="Your Papers", page_icon="📚"),
 
 
 # Function to truncate text
 def truncate_text(text, max_words=50):
-    if text is "N/A":
-        return text
+    if text is None or text == "":
+        return "N/A"
     words = text.split()
     if len(words) > max_words:
         return " ".join(words[:max_words]) + "..."
