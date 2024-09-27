@@ -1,0 +1,23 @@
+streamlit
+pandas
+
+#table
+st_aggrid
+
+#ai
+openai
+anthropic
+
+# parse pdf
+PyPDF2
+pikepdf
+
+
+langchain 
+langchain-community 
+langchain-openai 
+langchain-experimental 
+neo4j 
+tiktoken 
+yfiles_jupyter_graphs
+pymongo
