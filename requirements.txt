@@ -2,7 +2,7 @@ streamlit
 pandas
 
 #table
-st_aggrid
+streamlit-aggrid
 
 #ai
 openai

@@ -4,26 +4,18 @@ import pandas as pd
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-# Set the page configuration
-st.set_page_config(layout="wide", page_title="Table of Your Papers", page_icon="📚"),
+import dash
+from dash import html
+import dash_ag_grid as dag
 
-# Helper functions
-js_code = """
-function(params) {
-    if (params.value) {
-        let items = Array.isArray(params.value) ? params.value : params.value.split(',').map(item => item.trim());
-        return items.map(item => 
-            '<span style="background-color: #e6f3ff; padding: 2px 6px; border-radius: 10px; margin: 2px; display: inline-block;">' + 
-            item + '</span>'
-        ).join(' ');
-    }
-    return 'None';
-}
-"""
+# Set the page configuration
+st.set_page_config(layout="wide", page_title="Your Papers", page_icon="📚"),
 
 
 # Function to truncate text
 def truncate_text(text, max_words=50):
+    if text is "N/A":
+        return text
     words = text.split()
     if len(words) > max_words:
         return " ".join(words[:max_words]) + "..."
@@ -49,9 +41,11 @@ def load_json_files(directory):
     return json_files
 
 
-# Function to create a multiselect component NEED TO FIX
-def create_multiselect(options):
-    return options if options else []
+def create_multiselect(options: list) -> str:
+    if not options or len(options) == 1:
+        return "N/A"
+
+    return " | ".join(str(option) for option in options)
 
 
 # Main functions
@@ -94,19 +88,17 @@ def load_table(all_data):
     # Configure page options
     gb.configure_pagination(paginationAutoPageSize=True)
     gb.configure_side_bar(
-        filters_panel=True, columns_panel=True, defaultToolPanel="filters"
+        filters_panel=True,
+        columns_panel=True,  # defaultToolPanel="filters"
     )
 
     # Configure the grid options
     gb.configure_default_column(
         wrapText=True, autoHeight=True, maxWidth=500, groupable=True
     )
-    gb.configure_column("Authors", cellRenderer=js_code, minWidth=300)
-    gb.configure_column("Keywords", cellRenderer=js_code, minWidth=300)
-    gb.configure_column("References", cellRenderer=js_code, minWidth=300)
-    gb.configure_column("Title", minWidth=400)
-    gb.configure_column("Abstract", minWidth=500)
     gb.configure_grid_options(enableRangeSelection=True)
+
+    # Build the grid options
     gridOptions = gb.build()
 
     # Display the table
@@ -115,7 +107,8 @@ def load_table(all_data):
         gridOptions=gridOptions,
         fit_columns_on_grid_load=False,
         enable_enterprise_modules=True,
-        allow_unsafe_jscode=True,  # Add this line
+        height=500,
+        theme="streamlit",
     )
 
 
