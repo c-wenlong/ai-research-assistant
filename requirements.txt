@@ -1,5 +1,13 @@
 streamlit
 pandas
+
+#table
 st_aggrid
+
+#ai
 openai
 anthropic
+
+# parse pdf
+PyPDF2
+pikepdf
