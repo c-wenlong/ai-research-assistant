@@ -42,8 +42,16 @@ def generate_code_from_description(description):
             {"role": "system", "content": "You are a helpful assistant that generates Python code based on provided methodologies."},
             {"role": "user", "content": prompt}
         ],
-        max_tokens=1000
+        max_tokens=800,
+        # stream=True
     )
+    # result = ""
+    # for chunk in response:
+    #     # print(chunk.choices[0].delta.content)
+    #     if chunk.choices[0].delta.content:
+    #         result += chunk.choices[0].delta.content
+
+    # return result
 
     
     return response.choices[0].message.content

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import asyncio
 from web_scrape.scrape_optimized import main  # Ensure this imports your async main function
 from llm_playground import rag_function as rf
+from llm_playground import code_generation as cg
 from langchain_openai import ChatOpenAI
 from concurrent.futures import ThreadPoolExecutor
 import threading
@@ -40,6 +41,15 @@ def get_response():
     user_input = data.get("user_input")
     
     response = rf.llm_output(user_input) 
+    
+    return jsonify({"response": response})
+
+@app.route('/api/generate_code', methods=['POST'])
+def produce_code():
+    data = request.json
+    user_input = data.get("user_input")
+    
+    response = cg.code_generation(user_input)
     
     return jsonify({"response": response})
     

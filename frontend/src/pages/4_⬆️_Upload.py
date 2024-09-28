@@ -5,6 +5,7 @@ import PyPDF2
 import io
 import pymongo
 from openai import OpenAI
+import requests
 
 # Set page config to change the name in the sidebar
 st.set_page_config(
@@ -156,7 +157,14 @@ if uploaded_file is not None:
     generated_code = ""
     if st.button("Generate Code"):
         try:
+            response = requests.post(
+                "http://127.0.0.1:5000/api/generate_code", json={"user_input": text}
+            )
+            if response.status_code == 200:
+                response_data = response.json()
+                generated_code = response_data.get("response")
             # generated_code = generate_code(text)
+
             pass
         except Exception as e:
             st.error(f"An error occurred while generating code: {str(e)}")
