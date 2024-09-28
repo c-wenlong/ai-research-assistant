@@ -69,28 +69,16 @@ def get_response():
 #         return jsonify({"error": "Search failed", "details": str(e)}), 500
 @app.route('/web_search', methods=['POST'])
 def search_articles():
-    try:
-        user_input = request.json.get('query')
-        if not user_input:
-            return jsonify({"error": "No query provided"}), 400
+    user_input = request.json.get('query')
+    if not user_input:
+        return jsonify({"error": "No query provided"}), 400
 
-        def generate_stream():
-            # Simulate some chunked data generation
-            for i in range(5):
-                result = {"message": f"Result {i+1} for query '{user_input}'"}
-                yield json.dumps(result) + "\n"
-                time.sleep(1)  # Simulate processing time
 
-        return Response(generate_stream(), mimetype="application/json")
-
-<<<<<<< Updated upstream
     # Run the async main function using asyncio.run()
     try:
         results = asyncio.run(main(user_input))
         threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
         return jsonify(results), 200
-=======
->>>>>>> Stashed changes
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
