@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import pymongo
 from openai import OpenAI
 import os
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 import pandas as pd
 
 load_dotenv()
@@ -26,32 +26,6 @@ def fetch_data_from_mongodb_pubmed():
     # Retrieve all documents from the collection
     papers = collection.find()
     return papers, client
-
-
-# Function to generate keywords
-def generate_keywords(prompt, text):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    try:
-        # Call the OpenAI API with GPT-4
-        userPrompt = (
-            "Below is the JSON summary of a paper, generate keywords for the paper, and only output the keywords. In the format ['keyword 1', 'keyword 2', 'keyword 3']: "
-            + text
-        )
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Specify GPT-4 model
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": userPrompt},
-            ],
-        )
-
-        # Extract and return the response text
-        client.close()
-        return response.choices[0].message.content
-
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        return None
 
 
 # Function to truncate text
@@ -115,30 +89,6 @@ def load_json_files(directory):
 def process_md(file_path):
     with open(file_path, "r") as file:
         return file.read()
-
-
-def process_keywords_output(llm_output):
-    # Remove any leading/trailing whitespace
-    cleaned_output = llm_output.strip()
-
-    # Check if the output is already in the correct format
-    if cleaned_output.startswith("[") and cleaned_output.endswith("]"):
-        try:
-            # Try to parse the string as a literal Python list
-            keywords = ast.literal_eval(cleaned_output)
-            return keywords
-        except (SyntaxError, ValueError):
-            # If parsing fails, fall back to regex method
-            pass
-
-    # If not in the correct format, use regex to extract keywords
-    keyword_pattern = r"['\"](.*?)['\"]"
-    keywords = re.findall(keyword_pattern, cleaned_output)
-
-    # Remove any empty strings and strip whitespace
-    keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
-
-    return keywords
 
 
 # Convert JSON data to text
@@ -208,6 +158,7 @@ def load_database_pubmed():
     all_data = []
     for data in papers:
         display_data = {
+            "Link": data.get("article_url", "N/A"),
             "PMC ID": data.get("pmc_id", "N/A"),
             "Title": data.get("title", "N/A"),
             "Abstract": truncate_text(data.get("abstract", "N/A")),
@@ -215,18 +166,12 @@ def load_database_pubmed():
             "Publication Date": data.get("publication_date", "N/A"),
             "Journal Name": data.get("journal_name", "N/A"),
             "DOI": data.get("doi", "N/A"),
-            "Keywords": format_list(data.get("keywords", [])),
             "Introduction": truncate_text(data.get("introduction", "N/A")),
             "Methods": truncate_text(data.get("methods", "N/A")),
             "Results": truncate_text(data.get("results", "N/A")),
             "Discussion": truncate_text(data.get("discussion", "N/A")),
             "Conclusion": truncate_text(data.get("conclusion", "N/A")),
-            # "References": truncate_text(format_list(data.get("references", []))),
         }
-        # print(display_data)
-        keywords = generate_keywords(prompt, str(display_data))
-        processed_keywords = process_keywords_output(keywords)
-        display_data["Keywords"] = format_list(processed_keywords)
 
         all_data.append(display_data)
 
@@ -246,12 +191,6 @@ def load_table(all_data, type):
         groupable=True,
         cellStyle={"white-space": "pre-wrap"},
     )
-    if type == "pdf":
-        gb.configure_column(
-            "References",
-            maxWidth=1000,  # Increase the maximum width for References
-            minWidth=500,
-        )  # Set a minimum width to ensure it's wider
     gridOptions = gb.build()
     AgGrid(
         display_df,
@@ -270,7 +209,7 @@ def get_current_trends_and_insights(prompt, text, topic):
         # Call the OpenAI API with GPT-4
         userPrompt = (
             f"Analyze the research papers and conduct a web search on {topic}. "
-            f"Provide up to 10 entries of current trends, missing gaps, and future developments "
+            f"Provide up to 5 entries of current trends, missing gaps, and future developments "
             f"related to this topic in the specified JSON format "
             f"and only output the JSON structure and no additional text. Remove ``` from the beginning and end of the JSON structure."
             + text
@@ -304,12 +243,22 @@ def display_trends_table(current_trends):
         groupable=True,
         cellStyle={"white-space": "pre-wrap"},
     )
-    if type == "pdf":
-        gb.configure_column(
-            "References",
-            maxWidth=1000,  # Increase the maximum width for References
-            minWidth=500,
-        )  # Set a minimum width to ensure it's wider
+
+    # Custom cell renderer for the Link column
+    link_renderer = JsCode(
+    """
+    function(params) {
+        if (params.value === 'N/A') {
+            return params.value;
+        }
+        return '<a href="' + params.value + '" target="_blank">' + params.value + '</a>';
+    }
+    """
+    )
+
+    # Configure the Link column with the custom renderer
+    gb.configure_column("Link", cellRenderer=link_renderer)
+
     gridOptions = gb.build()
     AgGrid(
         display_df,
@@ -318,6 +267,7 @@ def display_trends_table(current_trends):
         enable_enterprise_modules=True,
         height=500,
         theme="streamlit",
+        allow_unsafe_jscode=True,  # This is needed for custom JavaScript renderers
     )
 
 
@@ -339,7 +289,6 @@ def main():
     all_data = load_database_pubmed()
     message_placeholder.success("Fetch successful!")
     load_table(all_data, "pubmed")
-    time.sleep(3)
     message_placeholder.empty()
 
     # Create current trends and insights
@@ -385,3 +334,5 @@ if st.button("Search"):
 
     else:
         st.warning("Please enter a search query")
+
+main()

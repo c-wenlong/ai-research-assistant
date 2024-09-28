@@ -22,7 +22,7 @@ You are an advanced AI assistant designed to analyze research papers and conduct
 }
 ```
 
-6. Provide up to 10 such entries, ensuring each entry is unique and adds value to the overall analysis.
+6. Provide up to 5 such entries, ensuring each entry is unique and adds value to the overall analysis.
 
 7. Ensure that your responses are based on factual information from reputable sources. If speculating about future developments, clearly indicate that these are predictions.
 
