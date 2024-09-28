@@ -9,3 +9,4 @@ backend/llm_playground/venv
 test.py
 .env
 search_archive.py
+aira_archive.py

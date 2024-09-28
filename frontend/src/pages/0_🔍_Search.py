@@ -233,6 +233,11 @@ def get_current_trends_and_insights(prompt, text, topic):
 
 def display_trends_table(current_trends):
     display_df = pd.DataFrame(current_trends)
+    # Define the new column names
+    new_column_names = ["Current Trends", "Missing Gaps", "Future Developments"]
+
+    # Rename the columns
+    display_df.columns = new_column_names
     gb = GridOptionsBuilder.from_dataframe(display_df)
     gb.configure_pagination(paginationAutoPageSize=True)
     gb.configure_side_bar(filters_panel=True, columns_panel=True)
@@ -243,21 +248,6 @@ def display_trends_table(current_trends):
         groupable=True,
         cellStyle={"white-space": "pre-wrap"},
     )
-
-    # Custom cell renderer for the Link column
-    link_renderer = JsCode(
-    """
-    function(params) {
-        if (params.value === 'N/A') {
-            return params.value;
-        }
-        return '<a href="' + params.value + '" target="_blank">' + params.value + '</a>';
-    }
-    """
-    )
-
-    # Configure the Link column with the custom renderer
-    gb.configure_column("Link", cellRenderer=link_renderer)
 
     gridOptions = gb.build()
     AgGrid(
