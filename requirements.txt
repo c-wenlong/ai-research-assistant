@@ -21,3 +21,6 @@ neo4j
 tiktoken 
 yfiles_jupyter_graphs
 pymongo
+
+aiohttp
+python-dotenv

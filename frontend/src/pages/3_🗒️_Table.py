@@ -1,8 +1,11 @@
+from PyPDF2 import PdfReader
 import streamlit as st
 import json
 import pandas as pd
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder
+from PyPDF2 import PdfReader
+import requests
 import pymongo
 
 # Set the page configuration
@@ -40,6 +43,11 @@ def truncate_text(text, max_words=50):
         return " ".join(words[:max_words]) + "..."
     return text
 
+# Function to create a multiselect string from a list
+def create_multiselect(options: list) -> str:
+    if not options or len(options) == 1:
+        return "N/A"
+    return " | ".join(str(option) for option in options)
 
 # Function to load JSON files from a directory
 def load_json_files(directory):
@@ -75,7 +83,6 @@ def load_database_pubmed():
     all_data = []
     for data in papers:
         display_data = {
-            # "Filename": filename,
             "PMC ID": data.get("pmc_id", "N/A"),
             "Title": data.get("title", "N/A"),
             "Abstract": truncate_text(data.get("abstract", "N/A")),
@@ -125,39 +132,17 @@ def load_database_pdf():
 
 
 def load_table(all_data):
-    # Create a DataFrame from the processed data
     display_df = pd.DataFrame(all_data)
-
-    # Create a grid options builder
     gb = GridOptionsBuilder.from_dataframe(display_df)
-
-    # Configure page options
     gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar(
-        filters_panel=True,
-        columns_panel=True,  # defaultToolPanel="filters"
-    )
-
-    # Configure the grid options
-    gb.configure_default_column(
-        wrapText=True, autoHeight=True, maxWidth=500, groupable=True
-    )
+    gb.configure_side_bar(filters_panel=True, columns_panel=True)
+    gb.configure_default_column(wrapText=True, autoHeight=True, maxWidth=500, groupable=True)
     gb.configure_grid_options(enableRangeSelection=True)
 
-    # Build the grid options
     gridOptions = gb.build()
+    AgGrid(display_df, gridOptions=gridOptions, fit_columns_on_grid_load=False, enable_enterprise_modules=True, height=500, theme="streamlit")
 
-    # Display the table
-    AgGrid(
-        display_df,
-        gridOptions=gridOptions,
-        fit_columns_on_grid_load=False,
-        enable_enterprise_modules=True,
-        height=500,
-        theme="streamlit",
-    )
-
-
+# Main application function
 def main():
     st.title("Your Papers")
     all_data = load_database_pubmed()
