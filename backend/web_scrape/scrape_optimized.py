@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import os
 from openai import OpenAI
 
-from mongo_utils import save_to_mongodb
+from .mongo_utils import save_to_mongodb
 
 load_dotenv()
 
