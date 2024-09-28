@@ -151,5 +151,17 @@ if uploaded_file is not None:
             st.success(f"File uploaded to MongoDB with ID: {inserted_id}")
         except Exception as e:
             st.error(f"An error occurred while uploading to MongoDB: {str(e)}")
+
+    # Generate code from paper data
+    generated_code = ""
+    if st.button("Generate Code"):
+        try:
+            # generated_code = generate_code(text)
+            pass
+        except Exception as e:
+            st.error(f"An error occurred while generating code: {str(e)}")
+
+    if generated_code:
+        st.markdown(generated_code)
 else:
     st.info("Please upload a PDF file.")

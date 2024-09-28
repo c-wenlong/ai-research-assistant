@@ -200,6 +200,11 @@ def load_table(all_data, type):
     )
 
 
+# Function to get current trends and insights
+def get_current_trends_and_insights(papers):
+    pass
+
+
 # Define the backend endpoint (replace with your actual endpoint URL)
 BACKEND_URL = "http://127.0.0.1:5000/web_search"
 
@@ -252,6 +257,10 @@ def main():
     load_table(all_data, "pubmed")
     time.sleep(3)
     message_placeholder.empty()
+
+    # Create current trends and insights
+    st.title("Current Trends and Insights")
+    get_current_trends_and_insights(all_data)
 
 
 main()
