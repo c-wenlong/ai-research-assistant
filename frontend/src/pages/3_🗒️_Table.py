@@ -4,8 +4,6 @@ import json
 import pandas as pd
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder
-from PyPDF2 import PdfReader
-import requests
 import pymongo
 
 # Set the page configuration
