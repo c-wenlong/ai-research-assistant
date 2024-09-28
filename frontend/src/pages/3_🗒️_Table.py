@@ -169,7 +169,9 @@ def load_database_pubmed():
         }
         # print(display_data)
         keywords = generate_keywords(prompt, str(display_data))
-        display_data["Keywords"] = process_keywords_output(keywords)
+        processed_keywords = process_keywords_output(keywords)
+        display_data["Keywords"] = format_list(processed_keywords)
+
         all_data.append(display_data)
 
     client.close()
@@ -236,7 +238,7 @@ def load_table(all_data):
 # Main application function
 def main():
     # Set the page configuration
-    st.set_page_config(layout="wide", page_title="Your Papers", page_icon="📚"),
+    st.set_page_config(layout="wide", page_title="Your Papers", page_icon="📚")
     message_placeholder = st.empty()
     message_placeholder.success("Fetching articles and summarizing them...")
     st.title("Brainstorming")
@@ -244,7 +246,7 @@ def main():
     load_table(all_data)
     message_placeholder.empty()
     st.title("Knowledge Base")
-    st.write("Articles fetched and summarized successfully!")
+    message_placeholder.success("Fetch successful!")
     data = load_database_pdf()
     load_table(data)
     time.sleep(3)
