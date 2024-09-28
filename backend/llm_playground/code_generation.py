@@ -39,10 +39,11 @@ def generate_code_from_description(description):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates Python code based on provided methodologies."},
+            {"role": "system", "content": "You are a helpful assistant that generates Python code based on provided methodologies. Optimise your response time and keep the response to 750 tokens"},
             {"role": "user", "content": prompt}
         ],
         max_tokens=800,
+        temperature=0
         # stream=True
     )
     # result = ""
