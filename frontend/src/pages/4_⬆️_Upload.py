@@ -1,4 +1,5 @@
 import json
+import os
 import streamlit as st
 import PyPDF2
 import io
@@ -22,7 +23,7 @@ st.sidebar.write("Upload a PDF file to get started.")
 
 # Get paper summary from openai model
 def get_paper_summary(prompt, text):
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     try:
         # Call the OpenAI API with GPT-4
         userPrompt = (
@@ -104,7 +105,7 @@ def push_data_to_mongodb(data: dict):
     if not isinstance(data, dict):
         raise ValueError("Input must be a dictionary")
 
-    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
 
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]

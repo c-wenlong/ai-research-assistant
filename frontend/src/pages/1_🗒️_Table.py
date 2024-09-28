@@ -8,10 +8,13 @@ import pymongo
 from openai import OpenAI
 import re
 import ast
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def fetch_data_from_mongodb_pubmed():
-    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
 
     db = client["research_articles"]
     collection = db["summarized_fields_article"]
@@ -22,7 +25,7 @@ def fetch_data_from_mongodb_pubmed():
 
 
 def fetch_data_from_mongodb_pdf():
-    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
 
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]
@@ -34,7 +37,7 @@ def fetch_data_from_mongodb_pdf():
 
 # Function to generate keywords
 def generate_keywords(prompt, text):
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     try:
         # Call the OpenAI API with GPT-4
         userPrompt = (

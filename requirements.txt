@@ -12,6 +12,7 @@ anthropic
 PyPDF2
 pikepdf
 
+matplotlib
 
 langchain 
 langchain-community 

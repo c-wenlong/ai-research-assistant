@@ -20,17 +20,19 @@ if st.button("Search"):
             try:
                 # Sending request to the backend API
                 print(f"Sending query: {search_query}")
-                response = requests.post(BACKEND_URL, json={"query": search_query}, stream=True)
-                
+                response = requests.post(
+                    BACKEND_URL, json={"query": search_query}, stream=True
+                )
+
                 # Check for the response status
                 if response.status_code == 200:
                     st.success("Search completed successfully.")
-                    
+
                     # Reading the streamed response
                     for chunk in response.iter_lines():
                         if chunk:
                             # Decode the chunk and process it as per backend response structure
-                            result = json.loads(chunk.decode('utf-8'))
+                            result = json.loads(chunk.decode("utf-8"))
                             st.write(result)
                             time.sleep(1)  # Simulate delay between chunks
 

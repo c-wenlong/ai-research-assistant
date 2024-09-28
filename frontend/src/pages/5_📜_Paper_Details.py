@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import pymongo
@@ -28,7 +29,7 @@ st.markdown(
 
 # Function to fetch papers from MongoDB
 def fetch_papers_from_mongodb_pubmed():
-    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
     db = client["research_articles"]
     collection = db["summarized_fields_article"]
     papers = list(collection.find())
@@ -38,7 +39,7 @@ def fetch_papers_from_mongodb_pubmed():
 
 # Function to fetch papers from MongoDB
 def fetch_papers_from_mongodb_pdf():
-    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]
     papers = list(collection.find())
