@@ -74,6 +74,12 @@ def search_articles():
     user_input = request.json.get('query')
     if not user_input:
         return jsonify({"error": "No query provided"}), 400
+    try:
+        summarized_collection.delete_many({})
+        raw_collection.delete_many({})
+    except Exception as e:
+        print(f"Error clearing collections: {e}")
+        return jsonify({"error": "Failed to clear collections", "details": str(e)}), 500
     
     print(f"Received query: {user_input}")
 
