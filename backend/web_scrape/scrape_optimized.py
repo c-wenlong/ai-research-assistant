@@ -217,6 +217,7 @@ async def main(user_input):
                         filled_sections_count = count_filled_sections(parsed_sections)
                         article.update(parsed_sections)
                         article['filled_sections_count'] = filled_sections_count
+                        article["article_url"] = f"https://www.ncbi.nlm.nih.gov/pmc/articles/{article['pmc_id']}/"
                         parsed_articles.append(article)
                     except Exception as e:
                         print(f"Error parsing full text for {article['pmc_id']}: {e}")
