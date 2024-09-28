@@ -8,6 +8,8 @@ from llm_playground import rag_function as rf
 from langchain_openai import ChatOpenAI
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import time
+import json
 
 load_dotenv()
 
@@ -41,28 +43,56 @@ def get_response():
     
     return jsonify({"response": response})
     
-@app.route('/search', methods=['POST'])
+# @app.route('/web_search', methods=['POST'])
+# def search_articles():
+#     try:
+#         print("Search endpoint hit")
+        
+#         # Get the user input from the request body
+#         user_input = request.json.get('query')
+#         if not user_input:
+#             print("No query provided")
+#             return jsonify({"error": "No query provided"}), 400  # Return if no query
+        
+#         print(f"Received query: {user_input}")
+        
+#         # Ensure the main function runs and completes successfully
+#         asyncio.run(main(user_input))
+        
+#         # After main completes, return a success message
+#         return jsonify({"message": "Search completed successfully."}), 200
+
+#     except Exception as e:
+#         # Catch all exceptions and log the full stack trace
+#         print("Error during search:", e)
+#         print(traceback.format_exc())  # Full traceback for debugging
+#         return jsonify({"error": "Search failed", "details": str(e)}), 500
+@app.route('/web_search', methods=['POST'])
 def search_articles():
-    user_input = request.json.get('query', '')
-    if not user_input:
-        return jsonify({"error": "No query provided"}), 400
-
-    # Clear the documents in the collections before running main
     try:
-        summarized_collection.delete_many({})  # Clear summarized articles
-        raw_collection.delete_many({})  # Clear raw articles
-    except Exception as e:
-        print(f"Error clearing collections: {e}")
-        return jsonify({"error": "Failed to clear collections", "details": str(e)}), 500
+        user_input = request.json.get('query')
+        if not user_input:
+            return jsonify({"error": "No query provided"}), 400
 
+        def generate_stream():
+            # Simulate some chunked data generation
+            for i in range(5):
+                result = {"message": f"Result {i+1} for query '{user_input}'"}
+                yield json.dumps(result) + "\n"
+                time.sleep(1)  # Simulate processing time
+
+        return Response(generate_stream(), mimetype="application/json")
+
+<<<<<<< Updated upstream
     # Run the async main function using asyncio.run()
     try:
         results = asyncio.run(main(user_input))
         threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
         return jsonify(results), 200
+=======
+>>>>>>> Stashed changes
     except Exception as e:
-        print(f"Error during search: {e}")  # Print the specific error message
-        return jsonify({"error": "Search failed", "details": str(e)}), 500  # Include error details in the response
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
