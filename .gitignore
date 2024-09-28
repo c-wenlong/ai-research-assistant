@@ -7,3 +7,4 @@ backend/.env
 backend/llm_playground/.env
 backend/llm_playground/venv
 test.py
+.env
