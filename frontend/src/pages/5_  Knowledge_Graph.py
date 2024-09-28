@@ -10,42 +10,42 @@ password = "cMNbsoKMN0ELFAZF98cnZv_wlub6hrYdOYGb3VRx-qI"
 driver = GraphDatabase.driver(uri, auth=(username, password))
 
 # Function to get main concepts and their links
-@st.cache_data(show_spinner=False)  # Cache the graph data to avoid reloading
-def get_main_concepts():
-    def query_neo4j(tx):
-        query = """
-        MATCH (n)-[r]-() 
-        WITH n, COUNT(r) AS degree
-        WHERE degree > 25  // Only get nodes with more than 25 connections
-        MATCH (n)-[r]->(m)
-        RETURN n.id AS source, m.id AS target, r.type AS relationship
-        """
-        result = tx.run(query)
-        return [(record["source"], record["target"], record["relationship"]) for record in result]
+# @st.cache_data(show_spinner=False)  # Cache the graph data to avoid reloading
+# def get_main_concepts():
+#     def query_neo4j(tx):
+#         query = """
+#         MATCH (n)-[r]-() 
+#         WITH n, COUNT(r) AS degree
+#         WHERE degree > 25  // Only get nodes with more than 25 connections
+#         MATCH (n)-[r]->(m)
+#         RETURN n.id AS source, m.id AS target, r.type AS relationship
+#         """
+#         result = tx.run(query)
+#         return [(record["source"], record["target"], record["relationship"]) for record in result]
     
-    with driver.session() as session:
-        main_concepts = session.read_transaction(query_neo4j)
-    return main_concepts
+#     with driver.session() as session:
+#         main_concepts = session.read_transaction(query_neo4j)
+#     return main_concepts
 
-# Get graph data (cached to avoid reloading on tab switch)
-main_concepts = get_main_concepts()
+# # Get graph data (cached to avoid reloading on tab switch)
+# main_concepts = get_main_concepts()
 
-# Create a PyVis network graph for main concepts
-@st.cache_data(show_spinner=False)  # Cache the PyVis graph generation
-def create_network_graph(main_concepts):
-    net = Network(height='750px', width='100%', bgcolor='#ffffff', font_color='black')
+# # Create a PyVis network graph for main concepts
+# @st.cache_data(show_spinner=False)  # Cache the PyVis graph generation
+# def create_network_graph(main_concepts):
+#     net = Network(height='750px', width='100%', bgcolor='#ffffff', font_color='black')
 
-    # Add nodes and edges for main concepts
-    for source, target, relationship in main_concepts:
-        net.add_node(source, label=source, size=20)  # Larger nodes for main concepts
-        net.add_node(target, label=target, size=20)
-        net.add_edge(source, target, title=relationship, width=2)  # Thicker edges for relationships
+#     # Add nodes and edges for main concepts
+#     for source, target, relationship in main_concepts:
+#         net.add_node(source, label=source, size=20)  # Larger nodes for main concepts
+#         net.add_node(target, label=target, size=20)
+#         net.add_edge(source, target, title=relationship, width=2)  # Thicker edges for relationships
 
-    # Save the PyVis graph to HTML
-    net.save_graph('main_concepts_graph.html')
+#     # Save the PyVis graph to HTML
+#     net.save_graph('main_concepts_graph.html')
 
-# Generate and cache the graph
-create_network_graph(main_concepts)
+# # Generate and cache the graph
+# create_network_graph(main_concepts)
 
 # Display in Streamlit
 HtmlFile = open('main_concepts_graph.html', 'r', encoding='utf-8')
