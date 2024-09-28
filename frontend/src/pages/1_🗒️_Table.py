@@ -110,7 +110,6 @@ def process_keywords_output(llm_output):
     return keywords
 
 
-
 # Main function
 def load_database_pdf():
     papers, client = fetch_data_from_mongodb_pdf()

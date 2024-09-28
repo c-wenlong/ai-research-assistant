@@ -13,6 +13,9 @@ import pandas as pd
 
 load_dotenv()
 
+# Streamlit configuration for minimalistic appearance
+st.set_page_config(page_title="Search App", layout="centered")
+
 
 def fetch_data_from_mongodb_pubmed():
     client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
@@ -43,6 +46,7 @@ def generate_keywords(prompt, text):
         )
 
         # Extract and return the response text
+        client.close()
         return response.choices[0].message.content
 
     except Exception as e:
@@ -137,6 +141,65 @@ def process_keywords_output(llm_output):
     return keywords
 
 
+# Convert JSON data to text
+def json_to_text(papers):
+    processed_papers = []
+
+    for i, paper in enumerate(papers, 1):
+        paper_str = f"Paper {i}:\n"
+        paper_str += f"PMC ID: {paper.get('PMC ID', 'N/A')}\n"
+        paper_str += f"Title: {paper.get('Title', 'N/A')}\n"
+        paper_str += f"Abstract: {paper.get('Abstract', 'N/A')}\n"
+        paper_str += f"Authors: {paper.get('Authors', 'N/A')}\n"
+        paper_str += f"Publication Date: {paper.get('Publication Date', 'N/A')}\n"
+        paper_str += f"Journal: {paper.get('Journal Name', 'N/A')}\n"
+        paper_str += f"DOI: {paper.get('DOI', 'N/A')}\n"
+        paper_str += f"Keywords: {paper.get('Keywords', 'N/A')}\n"
+
+        # Add truncated sections
+        sections = ["Introduction", "Methods", "Results", "Discussion", "Conclusion"]
+        for section in sections:
+            content = paper.get(section, "N/A")
+            paper_str += f"{section}: {content}\n"
+
+        paper_str += "\n"
+
+        processed_papers.append(paper_str)
+
+    return "\n".join(processed_papers)
+
+
+# Function to process the JSON file
+def process_json(current_trends):
+    # Remove triple backticks and strip whitespace
+    cleaned_summary = current_trends.strip().lstrip("`").rstrip("`").strip()
+
+    try:
+        # Attempt to parse the JSON
+        paper_data = json.loads(cleaned_summary)
+        return paper_data
+    except json.JSONDecodeError as e:
+        st.error(f"Error parsing JSON: {str(e)}")
+
+        # Debug: Show the problematic part of the JSON
+        error_position = e.pos
+        start = max(0, error_position - 20)
+        end = min(len(cleaned_summary), error_position + 20)
+        problematic_part = cleaned_summary[start:end]
+        st.text("Problematic part of the JSON:")
+        st.code(f"...{problematic_part}...")
+
+        # If the string is empty, show a specific message
+        if not cleaned_summary:
+            st.error("The cleaned summary is empty. Please check the input data.")
+
+        # Show the full cleaned summary for manual inspection
+        st.text("Full cleaned summary:")
+        st.code(cleaned_summary)
+
+        return None
+
+
 # Main functions
 def load_database_pubmed():
     papers, client = fetch_data_from_mongodb_pubmed()
@@ -201,19 +264,61 @@ def load_table(all_data, type):
 
 
 # Function to get current trends and insights
-def get_current_trends_and_insights(papers):
-    pass
+def get_current_trends_and_insights(prompt, text, topic):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    try:
+        # Call the OpenAI API with GPT-4
+        userPrompt = (
+            f"Analyze the research papers and conduct a web search on {topic}. "
+            f"Provide up to 10 entries of current trends, missing gaps, and future developments "
+            f"related to this topic in the specified JSON format "
+            f"and only output the JSON structure and no additional text. Remove ``` from the beginning and end of the JSON structure."
+            + text
+        )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  # Specify GPT-4 model
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": userPrompt},
+            ],
+        )
+
+        # Extract and return the response text
+        client.close()
+        return response.choices[0].message.content
+
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return None
 
 
 def display_trends_table(current_trends):
-    # Convert the JSON data to a pandas DataFrame
-    df = pd.DataFrame(current_trends)
-
-    # Rename columns for better readability
-    df.columns = ["Current Trends", "Missing Gaps", "Future Developments"]
-
-    # Display the table using Streamlit
-    st.table(df)
+    display_df = pd.DataFrame(current_trends)
+    gb = GridOptionsBuilder.from_dataframe(display_df)
+    gb.configure_pagination(paginationAutoPageSize=True)
+    gb.configure_side_bar(filters_panel=True, columns_panel=True)
+    gb.configure_default_column(
+        wrapText=True,
+        autoHeight=True,
+        maxWidth=500,
+        groupable=True,
+        cellStyle={"white-space": "pre-wrap"},
+    )
+    if type == "pdf":
+        gb.configure_column(
+            "References",
+            maxWidth=1000,  # Increase the maximum width for References
+            minWidth=500,
+        )  # Set a minimum width to ensure it's wider
+    gridOptions = gb.build()
+    AgGrid(
+        display_df,
+        gridOptions=gridOptions,
+        fit_columns_on_grid_load=False,
+        enable_enterprise_modules=True,
+        height=500,
+        theme="streamlit",
+    )
 
 
 # Optional: Add a title before the table
@@ -222,12 +327,31 @@ st.title("Current Trends, Missing Gaps, and Future Developments")
 # Define the backend endpoint (replace with your actual endpoint URL)
 BACKEND_URL = "http://127.0.0.1:5000/web_search"
 
-# Streamlit configuration for minimalistic appearance
-st.set_page_config(page_title="Search App", layout="centered")
-
 # Minimalistic search bar UI
 st.title("Search")
 search_query = st.text_input("Enter your search query", "")
+
+
+def main():
+    message_placeholder = st.empty()
+    message_placeholder.success("Fetching articles and summarizing them...")
+    st.title("Brainstorming")
+    all_data = load_database_pubmed()
+    message_placeholder.success("Fetch successful!")
+    load_table(all_data, "pubmed")
+    time.sleep(3)
+    message_placeholder.empty()
+
+    # Create current trends and insights
+    st.title("Current Trends and Insights")
+    prompt = process_md("./frontend/src/assets/research-analysis-prompt.md")
+    processed_data = json_to_text(all_data)
+    current_trends = get_current_trends_and_insights(
+        prompt, processed_data, search_query
+    )
+    processed_current_trends = process_json(current_trends)
+    display_trends_table(processed_current_trends)
+
 
 # Search button to trigger the API request
 if st.button("Search"):
@@ -243,7 +367,8 @@ if st.button("Search"):
                 # Check for the response status
                 if response.status_code == 200:
                     st.success("Search completed successfully.")
-
+                    main()
+                    """
                     # Reading the streamed response
                     for chunk in response.iter_lines():
                         if chunk:
@@ -251,7 +376,7 @@ if st.button("Search"):
                             result = json.loads(chunk.decode("utf-8"))
                             st.write(result)
                             time.sleep(1)  # Simulate delay between chunks
-
+                    """
                 else:
                     st.error(f"Error: {response.status_code} - {response.text}")
 
@@ -260,22 +385,3 @@ if st.button("Search"):
 
     else:
         st.warning("Please enter a search query")
-
-
-def main():
-    message_placeholder = st.empty()
-    message_placeholder.success("Fetching articles and summarizing them...")
-    st.title("Brainstorming")
-    all_data = load_database_pubmed()
-    message_placeholder.success("Fetch successful!")
-    load_table(all_data, "pubmed")
-    time.sleep(3)
-    message_placeholder.empty()
-
-    # Create current trends and insights
-    st.title("Current Trends and Insights")
-    current_trends = get_current_trends_and_insights(all_data)
-    display_trends_table(current_trends)
-
-
-main()
