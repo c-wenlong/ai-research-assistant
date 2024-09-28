@@ -42,6 +42,7 @@ class Entities(BaseModel):
     topics: List[str] = Field(..., description="Relevant topics or keywords from the text")
 
 def create_knowledge_graph(mongo_uri: str, db_name: str, collection_name: str, llm, batch_size: int = 10, max_workers: int = 13):
+    print("Knowledge graph creation started")
     # Connect to MongoDB
     client = MongoClient(mongo_uri)
     db = client[db_name]
@@ -92,7 +93,8 @@ def create_knowledge_graph(mongo_uri: str, db_name: str, collection_name: str, l
             )
     
     client.close()
-
+    print("Knowledge graph creation completed")
+    
     return graph
 
 def fetchGraphData(cypher: str = "MATCH (s)-[r:!MENTIONS]->(t) RETURN s,r,t LIMIT 50"):

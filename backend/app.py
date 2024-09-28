@@ -6,10 +6,13 @@ import asyncio
 from web_scrape.scrape_optimized import main  # Ensure this imports your async main function
 from llm_playground import rag_function as rf
 from langchain_openai import ChatOpenAI
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 load_dotenv()
 
 app = Flask(__name__)
+llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini-2024-07-18")
 
 # Connect to MongoDB
 mongo_uri = os.getenv("MONGO_URI")
@@ -55,6 +58,7 @@ def search_articles():
     # Run the async main function using asyncio.run()
     try:
         results = asyncio.run(main(user_input))
+        threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
         return jsonify(results), 200
     except Exception as e:
         print(f"Error during search: {e}")  # Print the specific error message
