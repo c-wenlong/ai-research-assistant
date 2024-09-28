@@ -1,0 +1,44 @@
+{
+  "title": "Title of the study",
+  "abstract": "Summary of the study",
+  "authors": [
+    "Author 1",
+    "Author 2",
+    "Author 3"
+  ],
+  "publication_date": "Publication Date in 'YYYY MMM DD' format",
+  "journal_name": "Journal's Name",
+  "doi": "doi of the study",
+  "keywords": [
+    "Keyword 1",
+    "Keyword 2",
+    "Keyword 3"
+  ],
+  "introduction": "Summary of the introduction of the study",
+  "methods": "Summary of the methods used in the study",
+  "results": "Summary of the results of the study",
+  "discussion": "Summary of the discussion of the study",
+  "conclusion": "Summary of the conclusion of the study",
+  "references": [
+    {
+      "title": "Title of the reference",
+      "authors": [
+        "Author 1",
+        "Author 2",
+        "Author 3"
+      ],
+      "publication_date": "Publication Date in 'YYYY MMM DD' format",
+      "journal_name": "Journal's Name"
+    },
+    {
+      "title": "Title of the reference",
+      "authors": [
+        "Author 1",
+        "Author 2",
+        "Author 3"
+      ],
+      "publication_date": "Publication Date in 'YYYY MMM DD' format",
+      "journal_name": "Journal's Name"
+    }
+  ]
+}

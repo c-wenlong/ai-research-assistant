@@ -1,0 +1,26 @@
+{
+  "_id": {
+    "$oid": "66f68bb274b1ce5e5b59524c"
+  },
+  "pmc_id": "PMC11424078",
+  "article_url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11424078/",
+  "title": "Title of the study",
+  "abstract": "Summary of the study",
+  "authors": [
+    "Author 1",
+    "Author 2",
+    "Author 3"
+  ],
+  "publication_date": "Publication Date in 'YYYY MMM DD' format",
+  "journal_name": "Journal's Name",
+  "doi": "doi of the study",
+  "score": {
+    "$numberInt": "10"
+  },
+  "introduction": "Summary of the introduction of the study",
+  "methods": "Summary of the methods used in the study",
+  "results": "Summary of the results of the study",
+  "discussion": "Summary of the discussion of the study",
+  "conclusion": "Summary of the conclusion of the study",
+  "references": [] 
+}
