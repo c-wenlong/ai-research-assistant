@@ -268,14 +268,13 @@ st.title("Current Trends, Missing Gaps, and Future Developments")
 BACKEND_URL = "http://127.0.0.1:5000/web_search"
 
 # Minimalistic search bar UI
-st.title("Search")
 search_query = st.text_input("Enter your search query", "")
 
 
 def main():
     message_placeholder = st.empty()
     message_placeholder.success("Fetching articles and summarizing them...")
-    st.title("Brainstorming")
+    st.subheader("Top Research Articles from PubMed")
     all_data = load_database_pubmed()
     message_placeholder.success("Fetch successful!")
     load_table(all_data, "pubmed")
@@ -283,13 +282,20 @@ def main():
 
     # Create current trends and insights
     st.title("Current Trends and Insights")
-    prompt = process_md("./frontend/src/assets/research-analysis-prompt.md")
-    processed_data = json_to_text(all_data)
-    current_trends = get_current_trends_and_insights(
-        prompt, processed_data, search_query
-    )
-    processed_current_trends = process_json(current_trends)
-    display_trends_table(processed_current_trends)
+    success_placeholder = st.empty()
+
+    with st.spinner("Generating current trends and insights..."):
+        prompt = process_md("./frontend/src/assets/research-analysis-prompt.md")
+        processed_data = json_to_text(all_data)
+        current_trends = get_current_trends_and_insights(
+            prompt, processed_data, search_query
+        )
+        processed_current_trends = process_json(current_trends)
+        display_trends_table(processed_current_trends)
+        
+    success_placeholder.success("Loading complete!")
+    time.sleep(3)
+    success_placeholder.empty()
 
 
 # Search button to trigger the API request
