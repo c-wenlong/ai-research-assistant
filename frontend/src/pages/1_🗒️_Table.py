@@ -144,7 +144,7 @@ def load_table(all_data, type):
     display_df = pd.DataFrame(all_data)
     gb = GridOptionsBuilder.from_dataframe(display_df)
     gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar(filters_panel=True, columns_panel=True)
+    gb.configure_side_bar(columns_panel=True)
     gb.configure_default_column(
         wrapText=True,
         autoHeight=True,
