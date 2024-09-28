@@ -6,6 +6,9 @@ import io
 import pymongo
 from openai import OpenAI
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Set page config to change the name in the sidebar
 st.set_page_config(
@@ -106,16 +109,15 @@ def push_data_to_mongodb(data: dict):
     if not isinstance(data, dict):
         raise ValueError("Input must be a dictionary")
 
-    client = pymongo.MongoClient(os.getenv("MONGO_URI"), maxPoolSize=100)
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
 
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]
 
     # Insert data into the collection
     result = collection.insert_one(data)
-    client.close()
 
-    return result.inserted_id
+    return result.inserted_id, client
 
 
 st.title("PDF File Uploader and Processor")
@@ -148,7 +150,8 @@ if uploaded_file is not None:
     # Add upload to MongoDB button
     if st.button("Upload to MongoDB"):
         try:
-            inserted_id = push_data_to_mongodb(paper_data)
+            inserted_id, client = push_data_to_mongodb(paper_data)
+            client.close()
             st.success(f"File uploaded to MongoDB with ID: {inserted_id}")
         except Exception as e:
             st.error(f"An error occurred while uploading to MongoDB: {str(e)}")
@@ -163,7 +166,6 @@ if uploaded_file is not None:
             if response.status_code == 200:
                 response_data = response.json()
                 generated_code = response_data.get("response")
-            # generated_code = generate_code(text)
 
             pass
         except Exception as e:

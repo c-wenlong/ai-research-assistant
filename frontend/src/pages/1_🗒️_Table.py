@@ -13,7 +13,7 @@ load_dotenv()
 
 
 def fetch_data_from_mongodb_pdf():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
+    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
 
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]

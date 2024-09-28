@@ -98,6 +98,7 @@ elif demo_section == "Tech Stack":
 
 elif demo_section == "Engineering Design":
     st.header("Engineering Design")
+    st.image("./frontend/src/assets/images/rag_retrieval.png")
 
     st.subheader("1. Multithreading")
     st.write(

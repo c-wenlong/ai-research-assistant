@@ -18,7 +18,7 @@ st.set_page_config(page_title="Search App", layout="centered")
 
 
 def fetch_data_from_mongodb_pubmed():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
+    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
 
     db = client["research_articles"]
     collection = db["summarized_fields_article"]
