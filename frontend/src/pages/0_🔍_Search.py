@@ -205,6 +205,20 @@ def get_current_trends_and_insights(papers):
     pass
 
 
+def display_trends_table(current_trends):
+    # Convert the JSON data to a pandas DataFrame
+    df = pd.DataFrame(current_trends)
+
+    # Rename columns for better readability
+    df.columns = ["Current Trends", "Missing Gaps", "Future Developments"]
+
+    # Display the table using Streamlit
+    st.table(df)
+
+
+# Optional: Add a title before the table
+st.title("Current Trends, Missing Gaps, and Future Developments")
+
 # Define the backend endpoint (replace with your actual endpoint URL)
 BACKEND_URL = "http://127.0.0.1:5000/web_search"
 
@@ -260,7 +274,8 @@ def main():
 
     # Create current trends and insights
     st.title("Current Trends and Insights")
-    get_current_trends_and_insights(all_data)
+    current_trends = get_current_trends_and_insights(all_data)
+    display_trends_table(current_trends)
 
 
 main()
