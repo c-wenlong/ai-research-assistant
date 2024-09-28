@@ -5,8 +5,6 @@ import io
 import pymongo
 from openai import OpenAI
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
 # Set page config to change the name in the sidebar
 st.set_page_config(
     page_title="PDF Analyzer",  # This will appear in the sidebar and browser tab
@@ -24,7 +22,7 @@ st.sidebar.write("Upload a PDF file to get started.")
 
 # Get paper summary from openai model
 def get_paper_summary(prompt, text):
-
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
     try:
         # Call the OpenAI API with GPT-4
         userPrompt = (
@@ -40,6 +38,7 @@ def get_paper_summary(prompt, text):
         )
 
         # Extract and return the response text
+        client.close()
         return response.choices[0].message.content
 
     except Exception as e:

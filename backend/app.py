@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
@@ -67,20 +67,26 @@ def get_response():
 #         print("Error during search:", e)
 #         print(traceback.format_exc())  # Full traceback for debugging
 #         return jsonify({"error": "Search failed", "details": str(e)}), 500
+
+
 @app.route('/web_search', methods=['POST'])
 def search_articles():
     user_input = request.json.get('query')
     if not user_input:
         return jsonify({"error": "No query provided"}), 400
-
+    try:
+        summarized_collection.delete_many({})
+        raw_collection.delete_many({})
+    except Exception as e:
+        print(f"Error clearing collections: {e}")
+        return jsonify({"error": "Failed to clear collections", "details": str(e)}), 500
+    
+    print(f"Received query: {user_input}")
 
     # Run the async main function using asyncio.run()
-    try:
-        results = asyncio.run(main(user_input))
-        threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
-        return jsonify(results), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    asyncio.run(main(user_input))
+    threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
+    return jsonify({"message": "Search completed successfully."}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)

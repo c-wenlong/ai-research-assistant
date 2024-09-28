@@ -86,7 +86,7 @@ async def check_full_text_availability(session, pmc_id):
         return response.status == 200
 
 async def summarize_sections(article):
-    sections_to_summarize = ['Introduction', 'Abstract', 'Methods', 'Results', 'Discussion', 'Conclusion']
+    sections_to_summarize = ['introduction', 'abstract', 'methods', 'results', 'discussion', 'Conclusion']
     summaries = {}
 
     for section in sections_to_summarize:
@@ -121,12 +121,12 @@ async def summarize_sections(article):
 def parse_bioc_xml(xml_text):
     root = ET.fromstring(xml_text)
     sections = {
-        "Abstract": "",
-        "Introduction": "",
-        "Methods": "",
-        "Results": "",
-        "Discussion": "",
-        "Conclusion": ""
+        "abstract": "",
+        "introduction": "",
+        "methods": "",
+        "results": "",
+        "discussion": "",
+        "conclusion": ""
     }
     
     for passage in root.findall('.//passage'):
@@ -138,17 +138,17 @@ def parse_bioc_xml(xml_text):
             passage_text_content = passage_text.text or ""
             
             if "abstract" in section_type_text.lower():
-                sections["Abstract"] += clean_parsed_sections(passage_text_content)
+                sections["abstract"] += clean_parsed_sections(passage_text_content)
             elif "intro" in section_type_text.lower():
-                sections["Introduction"] += clean_parsed_sections(passage_text_content)
+                sections["introduction"] += clean_parsed_sections(passage_text_content)
             elif "method" in section_type_text.lower():
-                sections["Methods"] += clean_parsed_sections(passage_text_content)
+                sections["methods"] += clean_parsed_sections(passage_text_content)
             elif "result" in section_type_text.lower():
-                sections["Results"] += clean_parsed_sections(passage_text_content)
+                sections["results"] += clean_parsed_sections(passage_text_content)
             elif "discuss" in section_type_text.lower():
-                sections["Discussion"] += clean_parsed_sections(passage_text_content)
+                sections["discussion"] += clean_parsed_sections(passage_text_content)
             elif "concl" in section_type_text.lower():
-                sections["Conclusion"] += clean_parsed_sections(passage_text_content)
+                sections["conclusion"] += clean_parsed_sections(passage_text_content)
 
     return sections
 
