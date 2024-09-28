@@ -158,6 +158,21 @@ elif demo_section == "Problem-Solving Approaches":
     """
     )
 
+    st.subheader("Leveraging Large Language Models")
+    st.write(
+        """
+    We integrated advanced Large Language Models (LLMs) from OpenAI and Anthropic into our development process:
+    
+    - Code Assistance: Used LLMs to generate code snippets, debug issues, and optimize algorithms.
+    - Documentation: Leveraged AI to draft and refine documentation, ensuring clarity and comprehensiveness.
+    - Ideation: Employed LLMs for brainstorming sessions, generating innovative feature ideas and solution approaches.
+    - Problem-solving: Utilized AI to analyze complex problems and suggest potential solutions or approaches.
+    - Code Review: Integrated LLMs into our code review process to catch potential issues and suggest improvements.
+    
+    This integration of AI tools significantly enhanced our development speed and code quality, allowing us to tackle complex challenges more effectively and innovate rapidly.
+    """
+    )
+
 elif demo_section == "User Stories":
     st.header("User Stories")
 
