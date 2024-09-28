@@ -5,23 +5,11 @@ import pandas as pd
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder
 import pymongo
-from openai import OpenAI
 import re
 import ast
 from dotenv import load_dotenv
 
 load_dotenv()
-
-
-def fetch_data_from_mongodb_pubmed():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URL"))
-
-    db = client["research_articles"]
-    collection = db["summarized_fields_article"]
-
-    # Retrieve all documents from the collection
-    papers = collection.find()
-    return papers, client
 
 
 def fetch_data_from_mongodb_pdf():
@@ -33,31 +21,6 @@ def fetch_data_from_mongodb_pdf():
     # Retrieve all documents from the collection
     papers = collection.find()
     return papers, client
-
-
-# Function to generate keywords
-def generate_keywords(prompt, text):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    try:
-        # Call the OpenAI API with GPT-4
-        userPrompt = (
-            "Below is the JSON summary of a paper, generate keywords for the paper, and only output the keywords. In the format ['keyword 1', 'keyword 2', 'keyword 3']: "
-            + text
-        )
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Specify GPT-4 model
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": userPrompt},
-            ],
-        )
-
-        # Extract and return the response text
-        return response.choices[0].message.content
-
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        return None
 
 
 # Function to truncate text
@@ -147,40 +110,8 @@ def process_keywords_output(llm_output):
     return keywords
 
 
-# Main functions
-def load_database_pubmed():
-    papers, client = fetch_data_from_mongodb_pubmed()
-    prompt = process_md("./frontend/src/assets/keyword-generation-prompt.md")
-    # Process all files
-    all_data = []
-    for data in papers:
-        display_data = {
-            "PMC ID": data.get("pmc_id", "N/A"),
-            "Title": data.get("title", "N/A"),
-            "Abstract": truncate_text(data.get("abstract", "N/A")),
-            "Authors": format_list(data.get("authors", [])),
-            "Publication Date": data.get("publication_date", "N/A"),
-            "Journal Name": data.get("journal_name", "N/A"),
-            "DOI": data.get("doi", "N/A"),
-            "Keywords": format_list(data.get("keywords", [])),
-            "Introduction": truncate_text(data.get("introduction", "N/A")),
-            "Methods": truncate_text(data.get("methods", "N/A")),
-            "Results": truncate_text(data.get("results", "N/A")),
-            "Discussion": truncate_text(data.get("discussion", "N/A")),
-            "Conclusion": truncate_text(data.get("conclusion", "N/A")),
-            # "References": truncate_text(format_list(data.get("references", []))),
-        }
-        # print(display_data)
-        keywords = generate_keywords(prompt, str(display_data))
-        processed_keywords = process_keywords_output(keywords)
-        display_data["Keywords"] = format_list(processed_keywords)
 
-        all_data.append(display_data)
-
-    client.close()
-    return all_data
-
-
+# Main function
 def load_database_pdf():
     papers, client = fetch_data_from_mongodb_pdf()
 
@@ -210,7 +141,7 @@ def load_database_pdf():
     return all_data
 
 
-def load_table(all_data):
+def load_table(all_data, type):
     display_df = pd.DataFrame(all_data)
     gb = GridOptionsBuilder.from_dataframe(display_df)
     gb.configure_pagination(paginationAutoPageSize=True)
@@ -222,11 +153,12 @@ def load_table(all_data):
         groupable=True,
         cellStyle={"white-space": "pre-wrap"},
     )
-    gb.configure_column(
-        "References",
-        maxWidth=1000,  # Increase the maximum width for References
-        minWidth=500,
-    )  # Set a minimum width to ensure it's wider
+    if type == "pdf":
+        gb.configure_column(
+            "References",
+            maxWidth=1000,  # Increase the maximum width for References
+            minWidth=500,
+        )  # Set a minimum width to ensure it's wider
     gridOptions = gb.build()
     AgGrid(
         display_df,
@@ -240,20 +172,9 @@ def load_table(all_data):
 
 # Main application function
 def main():
-    # Set the page configuration
-    st.set_page_config(layout="wide", page_title="Your Papers", page_icon="📚")
-    message_placeholder = st.empty()
-    message_placeholder.success("Fetching articles and summarizing them...")
-    st.title("Brainstorming")
-    all_data = load_database_pubmed()
-    load_table(all_data)
-    message_placeholder.empty()
     st.title("Knowledge Base")
-    message_placeholder.success("Fetch successful!")
     data = load_database_pdf()
-    load_table(data)
-    time.sleep(3)
-    message_placeholder.empty()
+    load_table(data, "pdf")
 
 
 main()
