@@ -3,9 +3,32 @@ import json
 import pandas as pd
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder
+import pymongo
 
 # Set the page configuration
 st.set_page_config(layout="wide", page_title="Your Papers", page_icon="📚"),
+
+
+def fetch_data_from_mongodb_pubmed():
+    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+
+    db = client["research_articles"]
+    collection = db["gut_microbiome"]
+
+    # Retrieve all documents from the collection
+    papers = collection.find()
+    return papers, client
+
+
+def fetch_data_from_mongodb_pdf():
+    client = pymongo.MongoClient(st.secrets["MONGODB_URL"])
+
+    db = client["research_articles"]
+    collection = db["pdf_upload_papers"]
+
+    # Retrieve all documents from the collection
+    papers = collection.find()
+    return papers, client
 
 
 # Function to truncate text
@@ -22,16 +45,16 @@ def truncate_text(text, max_words=50):
 def load_json_files(directory):
     json_files = {}
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    print("Script directory:", script_dir)
+    # print("Script directory:", script_dir)
     assets_dir = os.path.join(script_dir, directory)
-    print("Assets directory:", assets_dir)
+    # print("Assets directory:", assets_dir)
 
     for filename in os.listdir(assets_dir):
         if filename.endswith(".json"):
             file_path = os.path.join(
                 assets_dir, filename
             )  # Use assets_dir here, not directory
-            print(f"Loading file: {file_path}")
+            # print(f"Loading file: {file_path}")
             with open(file_path, "r") as file:
                 json_files[filename] = json.load(file)
     return json_files
@@ -45,13 +68,12 @@ def create_multiselect(options: list) -> str:
 
 
 # Main functions
-def load_json():
-    # Load all JSON files from the directory
-    json_files = load_json_files(st.secrets["PDF_PATH"])
+def load_database_pubmed():
+    papers, client = fetch_data_from_mongodb_pubmed()
 
     # Process all files
     all_data = []
-    for filename, data in json_files.items():
+    for data in papers:
         display_data = {
             # "Filename": filename,
             "PMC ID": data.get("pmc_id", "N/A"),
@@ -62,15 +84,43 @@ def load_json():
             "Journal Name": data.get("journal_name", "N/A"),
             "DOI": data.get("doi", "N/A"),
             "Keywords": create_multiselect(data.get("keywords", [])),
-            "Introduction": truncate_text(data.get("Introduction", "N/A")),
-            "Methods": truncate_text(data.get("Methods", "N/A")),
-            "Results": truncate_text(data.get("Results", "N/A")),
-            "Discussion": truncate_text(data.get("Discussion", "N/A")),
-            "Conclusion": truncate_text(data.get("Conclusion", "N/A")),
-            "References": create_multiselect(data.get("References", [])),
+            "Introduction": truncate_text(data.get("introduction", "N/A")),
+            "Methods": truncate_text(data.get("methods", "N/A")),
+            "Results": truncate_text(data.get("results", "N/A")),
+            "Discussion": truncate_text(data.get("discussion", "N/A")),
+            "Conclusion": truncate_text(data.get("conclusion", "N/A")),
+            "References": create_multiselect(data.get("references", [])),
         }
         all_data.append(display_data)
 
+    client.close()
+    return all_data
+
+
+def load_database_pdf():
+    papers, client = fetch_data_from_mongodb_pubmed()
+
+    # Process all files
+    all_data = []
+    for data in papers:
+        display_data = {
+            "Title": data.get("title", "N/A"),
+            "Abstract": truncate_text(data.get("abstract", "N/A")),
+            "Authors": create_multiselect(data.get("authors", [])),
+            "Publication Date": data.get("publication_date", "N/A"),
+            "Journal Name": data.get("journal_name", "N/A"),
+            "DOI": data.get("doi", "N/A"),
+            "Keywords": create_multiselect(data.get("keywords", [])),
+            "Introduction": truncate_text(data.get("introduction", "N/A")),
+            "Methods": truncate_text(data.get("methods", "N/A")),
+            "Results": truncate_text(data.get("results", "N/A")),
+            "Discussion": truncate_text(data.get("discussion", "N/A")),
+            "Conclusion": truncate_text(data.get("conclusion", "N/A")),
+            "References": create_multiselect(data.get("references", [])),
+        }
+        all_data.append(display_data)
+
+    client.close()
     return all_data
 
 
@@ -110,8 +160,10 @@ def load_table(all_data):
 
 def main():
     st.title("Your Papers")
-    all_data = load_json()
+    all_data = load_database_pubmed()
     load_table(all_data)
+    data = load_database_pdf()
+    load_table(data)
 
 
 main()
