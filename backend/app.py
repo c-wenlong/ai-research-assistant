@@ -7,14 +7,16 @@ from web_scrape.scrape_optimized import main  # Ensure this imports your async m
 from llm_playground import rag_function as rf
 from llm_playground import code_generation as cg
 from langchain_openai import ChatOpenAI
-from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
 import json
+from flask_caching import Cache
 
 load_dotenv()
 
 app = Flask(__name__)
+cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache.init_app(app)
 llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini-2024-07-18")
 
 # Connect to MongoDB
@@ -45,6 +47,7 @@ def get_response():
     return jsonify({"response": response})
 
 @app.route('/api/generate_code', methods=['POST'])
+@cache.cached(timeout=120, query_string=True)
 def produce_code():
     data = request.json
     user_input = data.get("user_input")
