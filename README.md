@@ -1,6 +1,6 @@
 # AIRA: Artificial Intelligence Research Assistant 🧠
 
-Revolutionizing Academic Research with AI, Watch our ![Demo](https://youtu.be/YiBkB2KtX3M?si=ktj0nATbIRdvrPBm).
+Revolutionizing Academic Research with AI, Watch our [Demo](https://youtu.be/YiBkB2KtX3M?si=ktj0nATbIRdvrPBm).
 
 ## Project Overview
 
