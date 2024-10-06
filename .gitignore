@@ -10,3 +10,5 @@ test.py
 .env
 search_archive.py
 aira_archive.py
+paper_json/
+research_papers/
