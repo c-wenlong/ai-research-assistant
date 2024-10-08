@@ -34,7 +34,7 @@ from dotenv import load_dotenv
 # Initialise Neo4j db and env settings
 load_dotenv()
 
-
+print("Neo4j URI: ", os.getenv("NEO4J_URI"))
 class Entities(BaseModel):
     """Extracting information about research papers and related entities."""
     names: List[str] = Field(..., description="All the people, group, entities, methods and organization that appear in the text")
