@@ -18,18 +18,16 @@ from langchain.text_splitter import TokenTextSplitter
 from langchain_openai import ChatOpenAI
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from neo4j import GraphDatabase
-from yfiles_jupyter_graphs import GraphWidget
 from langchain_community.vectorstores import Neo4jVector
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
 from langchain_core.runnables import ConfigurableField, RunnableParallel, RunnablePassthrough
 from langchain.schema import Document
-from pymongo import MongoClient
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pymongo import MongoClient
 from langchain.schema import Document
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from dotenv import load_dotenv
+import time
 
 # Uncomment the following line to enable debugging
 # from neo4j.debug import watch
@@ -39,17 +37,70 @@ from dotenv import load_dotenv
 # Initialise Neo4j db and env settings
 load_dotenv()
 
-print("Neo4j URI: ", os.getenv("NEO4J_URI"))
 class Entities(BaseModel):
     """Extracting information about research papers and related entities."""
-    names: List[str] = Field(..., description="All the people, group, entities, methods and organization that appear in the text")
-    tools: List[str] = Field(..., description="Tools, techniques, or software mentioned in the text")
-    topics: List[str] = Field(..., description="Relevant topics or keywords from the text")
+    # People and Institutions
+    # authors: List[str] = Field(
+    #     ..., description="Names of authors, contributors, and affiliated institutions."
+    # )
+    # affiliations: List[str] = Field(
+    #     ..., description="Institutions, universities, and organizations affiliated with the authors."
+    # )
+    
+    # Publications
+    titles: List[str] = Field(
+        ..., description="Titles of research papers and articles"
+    )
+    # publication_dates: List[str] = Field(
+    #     ..., description="Publication dates of the research papers."
+    # )
+    # journals: List[str] = Field(
+    #     ..., description="Names of journals or conferences where the papers were published."
+    # )
+    
+    # Research Topics and Domains
+    topics: List[str] = Field(
+        ..., description="Primary research topics or fields covered in the papers."
+    )
+    subtopics: List[str] = Field(
+        ..., description="Subtopics or more specific areas within the primary topics."
+    )
+    
+    # Methods and Techniques
+    methods: List[str] = Field(
+        ..., description="Research methodologies and analytical techniques used."
+    )
+    
+    # Tools and Technologies
+    tools: List[str] = Field(
+        ..., description="Software, hardware, and other tools employed in the research."
+    )
+    
+    # Datasets and Resources
+    # datasets: List[str] = Field(
+    #     ..., description="Data sources utilized or generated."
+    # )
+    
+    # Concepts and Theories
+    concepts: List[str] = Field(
+        ..., description="Key concepts, theories, and frameworks discussed."
+    )
+    
+    # Events and Conferences
+    # events: List[str] = Field(
+    #     ..., description="Events, workshops, and conferences where the research was presented."
+    # )
+    
+    # Citations
+    # citations: List[str] = Field(
+    #     ..., description="References to other research papers cited in the documents."
+    # )
 
-def create_knowledge_graph(mongo_uri: str, db_name: str, collection_name: str, llm, batch_size: int = 10, max_workers: int = 13):
+def create_knowledge_graph(client, mongo_uri: str, db_name: str, collection_name: str, llm, batch_size: int = 10, max_workers: int = 13):
     print("Knowledge graph creation started")
+    start_time = time.time()
     # Connect to MongoDB
-    client = MongoClient(mongo_uri)
+    # client = MongoClient(mongo_uri)
     db = client[db_name]
     collection = db[collection_name]
 
@@ -69,14 +120,14 @@ def create_knowledge_graph(mongo_uri: str, db_name: str, collection_name: str, l
             json_data_lower.get("conclusion", "")
         )       
 
-        metadata = {
-            "title": json_data_lower.get("title", "Untitled"),
-            "authors": json_data_lower.get("authors", "Unknown"),
-            "publication_date": json_data_lower.get("publication_date", "Unknown"),
-            "journal_name": json_data_lower.get("journal_name", "Unknown")
-        }
+        # metadata = {
+        #     "title": json_data_lower.get("title", "Untitled"),
+        #     "authors": json_data_lower.get("authors", "Unknown"),
+        #     "publication_date": json_data_lower.get("publication_date", "Unknown"),
+        #     "journal_name": json_data_lower.get("journal_name", "Unknown")
+        # }
 
-        document = Document(page_content=content, metadata=metadata)
+        document = Document(page_content=content)
         documents.append(document)
 
     llm_transformer = LLMGraphTransformer(llm=llm)
@@ -99,6 +150,8 @@ def create_knowledge_graph(mongo_uri: str, db_name: str, collection_name: str, l
     
     client.close()
     print("Knowledge graph creation completed")
+    end_time = time.time()
+    print("Time taken for Knowledge Graph Generation: ", end_time-start_time)
     
     return graph
 
@@ -194,7 +247,19 @@ def llm_generation(question: str, llm, graph, vector_index) -> str:
         [
             (
                 "system",
-                "You are extracting people, groups, entities, results, methods, topics, and tools from research papers for a knowledge graph.",
+                """
+                You are a research assistant specialized in extracting structured information from academic papers to build a comprehensive knowledge graph. 
+                Your task is to analyze the provided text and extract the following entities:
+
+                1. **Titles:** Titles of research papers, articles, and publications.
+                2. **Topics:** Primary research topics or fields covered in the papers.
+                3. **Subtopics:** Subtopics or more specific areas within the primary topics.
+                4. **Methods:** Research methodologies and analytical techniques used.
+                5. **Tools:** Software, hardware, and other tools employed in the research.
+                6. **Datasets:** Datasets and data sources utilized or generated.
+                7. **Concepts:** Key concepts, theories, and frameworks discussed.
+                8. **Events:** Events, workshops, and conferences where the research was presented.
+                """,
             ),
             (
                 "human",

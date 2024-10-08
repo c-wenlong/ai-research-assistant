@@ -76,21 +76,21 @@ def search_articles():
     
     print(f"Received query: {user_input}")
 
-    # Define a function to wrap the asyncio.run() call in a thread
-    def run_async_main():
-        asyncio.run(main(user_input))
+    # # Define a function to wrap the asyncio.run() call in a thread
+    # def run_async_main():
+    #     asyncio.run(main(user_input))
 
-    # Start the thread to run the async function
-    thread = Thread(target=run_async_main)
-    thread.start()
-    thread.join()
+    # # Start the thread to run the async function
+    # thread = Thread(target=run_async_main)
+    # thread.start()
+    # thread.join()
 
-    return jsonify({"message": "Search completed successfully."}), 200
-
-    # # Run the async main function using asyncio.run()
-    # asyncio.run(main(user_input))
-    # # threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
     # return jsonify({"message": "Search completed successfully."}), 200
+
+    # Run the async main function using asyncio.run()
+    asyncio.run(main(user_input))
+    threading.Thread(target=rf.create_knowledge_graph, args=(client, mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
+    return jsonify({"message": "Search completed successfully."}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)

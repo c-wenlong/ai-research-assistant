@@ -1,13 +1,151 @@
+import os
 from neo4j import GraphDatabase
 from pyvis.network import Network
 import streamlit.components.v1 as components
 import streamlit as st
+import json
+from typing import Dict, Any
 
 # Connect to Neo4j
-uri = "neo4j+s://a6bf0894.databases.neo4j.io"
-username = "neo4j"
-password = "cMNbsoKMN0ELFAZF98cnZv_wlub6hrYdOYGb3VRx-qI"
-driver = GraphDatabase.driver(uri, auth=(username, password))
+neo4j_uri = os.getenv("NEO4J_URI")
+neo4j_username = os.getenv("NEO4J_USERNAME")
+neo4j_password = os.getenv("NEO4J_PASSWORD")
+# driver = GraphDatabase.driver(uri, auth=(username, password))
+
+class Neo4jConnection:
+    def __init__(self, uri: str, user: str, password: str):
+        """
+        Initializes the Neo4j connection.
+
+        Args:
+            uri (str): The URI for the Neo4j instance.
+            user (str): Username for authentication.
+            password (str): Password for authentication.
+        """
+        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+    
+    def close(self):
+        """
+        Closes the Neo4j driver connection.
+        """
+        self.driver.close()
+    
+    def fetch_graph_data(self, cypher: str = "MATCH (s)-[r:!MENTIONS]->(t) RETURN s,r,t LIMIT 200") -> Dict[str, Any]:
+        """
+        Fetches nodes and relationships from the Neo4j graph database based on the provided Cypher query.
+
+        Args:
+            cypher (str): The Cypher query to execute.
+
+        Returns:
+            dict: A dictionary containing 'nodes' and 'links' for graph visualization.
+        """
+        with self.driver.session() as session:
+            result = session.run(cypher)
+            nodes = {}
+            edges = []
+            for record in result:
+                source_node = record['s']
+                relationship = record['r']
+                target_node = record['t']
+                
+                # Process Source Node
+                if source_node.id not in nodes:
+                    nodes[source_node.id] = {
+                        'id': source_node['id'],
+                        'label': source_node['id'],
+                        # 'group': list(source_node.labels)[0] if source_node.labels else 'Default',
+                        'description': source_node['labels'],
+                        # 'properties': dict(source_node)
+                    }
+                
+                # Process Target Node
+                if target_node.id not in nodes:
+                    nodes[target_node.id] = {
+                        'id': target_node['id'],
+                        'label': target_node['id'],
+                        # 'group': list(target_node.labels)[0] if target_node.labels else 'Default',
+                        'description': target_node['labels'],
+                        # 'properties': dict(target_node)
+                    }
+                
+                # Process Relationship
+                edges.append({
+                    'source': source_node['id'],
+                    'target': target_node['id'],
+                    'type': relationship.type,
+                    # 'properties': dict(relationship)  # Include relationship properties if needed
+                })
+            
+            return {'nodes': list(nodes.values()), 'links': edges}
+        
+    def fetchGraphData(self, uri: str, username: str, password: str, cypher: str = "MATCH (s)-[r:!MENTIONS]->(t) RETURN s,r,t LIMIT 50"):
+        with self.driver.session() as session:
+            result = session.run(cypher)
+
+            # Convert results to a format suitable for JSON
+            graph_data = []
+            for record in result:
+                source = record['s']
+                relationship = record['r']
+                target = record['t']
+                
+                graph_data.append({
+                    'source': dict(source),  # Convert Node to dict
+                    'relationship': {
+                        'type': relationship.type,  # Extract relationship type
+                        'properties': dict(relationship)  # Convert Relationship properties to dict
+                    },
+                    'target': dict(target)  # Convert Node to dict
+                })
+        
+        session.close()
+        return graph_data
+        # return {'nodes': [node for node in graph_data if 'source' not in node], 'links': [link for link in graph_data if 'source' in link]}
+    
+def prepare_data_for_d3(graph_data):
+    # graph_data is a dictionary with 'nodes' and 'links'
+    return json.dumps(graph_data)
+
+conn = Neo4jConnection(neo4j_uri, neo4j_username, neo4j_password)
+
+def main():
+    st.set_page_config(layout="wide")
+    st.title("AI Research Knowledge Graph Visualization with D3.js")
+
+    # Fetch data from Neo4j
+    graph_data = conn.fetch_graph_data()  # Adjust limit as needed
+    # graph_data = conn.fetchGraphData(uri, username, password)
+    # print(graph_data)
+    # Prepare data for D3.js
+    graph_json = prepare_data_for_d3(graph_data)
+
+    # Checking
+    with open("sample.json", "w") as outfile:  
+        outfile.write(graph_json)
+
+    # Read the HTML template
+    with open("knowledge_graph.html", "r") as f:
+        html_template = f.read()
+
+    # Inject the JSON data into the HTML
+    html_content = html_template.replace("{{ data }}", graph_json)
+
+    # Embed the visualization in Streamlit
+    components.html(html_content, height=800, width=1200)
+
+    # Optional: Add controls or interactivity in Streamlit
+    st.sidebar.header("Controls")
+    search_term = st.sidebar.text_input("Search Node")
+
+    if search_term:
+        # Implement search/filter logic if needed
+        st.write(f"Search functionality can be implemented here for: {search_term}")
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()
 
 # Function to get main concepts and their links
 # @st.cache_data(show_spinner=False)  # Cache the graph data to avoid reloading
@@ -48,11 +186,11 @@ driver = GraphDatabase.driver(uri, auth=(username, password))
 # create_network_graph(main_concepts)
 
 # Display in Streamlit
-HtmlFile = open('main_concepts_graph.html', 'r', encoding='utf-8')
-components.html(HtmlFile.read(), height=750)
+# HtmlFile = open('main_concepts_graph.html', 'r', encoding='utf-8')
+# components.html(HtmlFile.read(), height=750)
 
 # Close the driver after querying is done
-driver.close()
+# driver.close()
 
 
 
