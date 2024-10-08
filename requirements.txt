@@ -28,3 +28,6 @@ python-dotenv
 pyvis
 
 flask
+plotly
+pdfplumber
+Flask-Caching
