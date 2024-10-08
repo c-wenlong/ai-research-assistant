@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Knowledge Graph Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-tip@0.9.1/dist/d3-tip.min.js"></script>
+    <style>
+        /* Styling for links */
+        .links line {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+
+        /* Styling for link labels */
+        .link-label {
+            font-family: sans-serif;
+            font-size: 10px;
+            fill: #555;
+            pointer-events: none; /* Prevent labels from capturing mouse events */
+        }
+
+        /* Styling for nodes */
+        .nodes circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+
+        /* Styling for node labels */
+        .labels text {
+            font-family: sans-serif;
+            font-size: 10px;
+            pointer-events: none; /* Prevent labels from capturing mouse events */
+        }
+
+        /* Styling for highlighted elements */
+        .highlighted {
+            stroke: #e7c60fcb;
+            stroke-width: 0.8px;
+        }
+
+        /* Optional: Styling for the search box */
+        #searchBox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 5px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .d3-tip {
+            line-height: 1;
+            font-weight: bold;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Optional: Add a search box above the SVG -->
+    <input type="text" id="searchBox" placeholder="Search for nodes...">
+
+    <!-- SVG Container -->
+    <svg width="100%" height="800"></svg>
+
+    <script>
+        function calculateAngle(source, target) {
+            const dx = target.x - source.x;
+            const dy = target.y - source.y;
+            const radians = Math.atan2(dy, dx);
+            const degrees = radians * (180 / Math.PI);
+            return degrees;
+        }
+
+        // Parse the JSON data passed from Python
+        const graph = JSON.parse('{{ data }}');
+
+        // Define SVG dimensions
+        const width = window.innerWidth;
+        const height = 800;
+
+        // Select the SVG element
+        const svg = d3.select("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .call(d3.zoom()
+                .scaleExtent([0.1, 4]) // Define zoom scale limits
+                .on("zoom", zoomed))
+            .append("g"); // Append a group to apply zoom transformations
+
+        // Color scale for node groups
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Initialize force simulation
+        const simulation = d3.forceSimulation(graph.nodes)
+            .force("link", d3.forceLink(graph.links).id(d => d.id).distance(170))
+            .force("charge", d3.forceManyBody().strength(-250))
+            .force("center", d3.forceCenter(width / 2, height / 2));
+
+        // Add links (lines)
+        const link = svg.append("g")
+            .attr("class", "links")
+            .selectAll("path")
+            .data(graph.links)
+            .enter().append("line")
+            .attr("stroke-width", 2)
+            .attr("stroke", "#999");
+
+        // Add link labels
+        const linkLabel = svg.append("g")
+        .attr("class", "link-labels")
+        .selectAll("text")
+        .data(graph.links)
+        .enter().append("text")
+        .attr("class", "link-label")
+        .attr("dy", -5)
+        .attr("text-anchor", "middle")
+        .attr("transform", d => {
+            const midX = (d.source.x + d.target.x) / 2;
+            const midY = (d.source.y + d.target.y) / 2;
+            const angle = calculateAngle(d.source, d.target);
+            return `translate(${midX}, ${midY}) rotate(${angle})`;
+        })
+        .text(d => d.type);
+
+        // Add nodes (circles)
+        const node = svg.append("g")
+            .attr("class", "nodes")
+            .selectAll("circle")
+            .data(graph.nodes)
+            .enter().append("circle")
+            .attr("r", 15)
+            .attr("fill", d => color(d.group))
+            .call(drag(simulation));
+
+        // Add node labels
+        const label = svg.append("g")
+            .attr("class", "labels")
+            .selectAll("text")
+            .data(graph.nodes)
+            .enter().append("text")
+            .attr("dy", -15)
+            .attr("text-anchor", "middle")
+            .text(d => d.label);
+
+        // Add tooltips to nodes
+        node.append("title")
+            .text(d => d.description);
+
+
+        // Handle simulation tick events
+        simulation.on("tick", () => {
+            // Update link positions
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            // Update node positions
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            // Update label positions
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+
+            // Update link label positions (midpoint of links)
+            linkLabel
+                .attr("transform", d => {
+                    const midX = (d.source.x + d.target.x) / 2;
+                    const midY = (d.source.y + d.target.y) / 2;
+                    const angle = calculateAngle(d.source, d.target);
+                    return `translate(${midX}, ${midY}) rotate(${angle})`;
+                });
+        });
+
+        // Zoom handler
+        function zoomed(event) {
+            svg.attr("transform", event.transform);
+        }
+
+        // Drag event handlers
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        // Custom clustering force
+        function clusteringForce(alpha) {
+            return function() {
+                graph.nodes.forEach(node => {
+                    const clusterCenter = graph.nodes.find(n => n.group === node.group);
+                    if (clusterCenter && clusterCenter !== node) {
+                        node.vx -= (node.x - clusterCenter.x) * alpha;
+                        node.vy -= (node.y - clusterCenter.y) * alpha;
+                    }
+                });
+            };
+        }
+
+        // Implement search functionality within D3.js
+        d3.select("#searchBox").on("input", function() {
+            const searchTerm = this.value.toLowerCase();
+            if (searchTerm === "") {
+                node.classed("highlighted", false);
+                label.classed("highlighted", false);
+            } else {
+                node.classed("highlighted", d => d.label.toLowerCase().includes(searchTerm));
+                label.classed("highlighted", d => d.label.toLowerCase().includes(searchTerm));
+            }
+        });
+
+        // Initialize d3-tip
+        const tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .offset([-10, 0])
+            .html(d => `<strong>Type:</strong> <span style='color:red'>${d.type}</span>`);
+
+        // Call the tip on the SVG container
+        svg.call(tip);
+
+        // Show tip on mouseover and hide on mouseout
+        link.on('mouseover', function(event, d) {
+            tip.show(d, this);
+        })
+        .on('mouseout', function(event, d) {
+            tip.hide(d, this);
+        });
+
+
+    </script>
+</body>
+</html>
