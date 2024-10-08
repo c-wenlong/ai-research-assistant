@@ -109,7 +109,7 @@ def push_data_to_mongodb(data: dict):
     if not isinstance(data, dict):
         raise ValueError("Input must be a dictionary")
 
-    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
 
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]

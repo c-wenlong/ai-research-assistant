@@ -18,7 +18,7 @@ st.set_page_config(page_title="Search App", layout="centered")
 
 
 def fetch_data_from_mongodb_pubmed():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
 
     db = client["research_articles"]
     collection = db["summarized_fields_article"]
@@ -179,7 +179,7 @@ def load_table(all_data):
 
 # Function to fetch individual articles gaps from MongoDB
 def fetch_individual_articles_gaps():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
     db = client["research_articles"]
     collection = db["gap_individual_articles"]
 
@@ -190,7 +190,7 @@ def fetch_individual_articles_gaps():
 
 # Function to fetch papers comparison gaps from MongoDB
 def fetch_papers_comparison_gaps():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
     db = client["research_articles"]
     collection = db["gap_comparison_section"]
 

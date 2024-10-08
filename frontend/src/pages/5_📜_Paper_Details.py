@@ -29,7 +29,7 @@ st.markdown(
 
 # Function to fetch papers from MongoDB
 def fetch_papers_from_mongodb_pubmed():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
     db = client["research_articles"]
     collection = db["summarized_fields_article"]
     papers = list(collection.find())
@@ -39,7 +39,7 @@ def fetch_papers_from_mongodb_pubmed():
 
 # Function to fetch papers from MongoDB
 def fetch_papers_from_mongodb_pdf():
-    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    client = pymongo.MongoClient(os.getenv("MONGO_URI"))
     db = client["research_articles"]
     collection = db["pdf_upload_papers"]
     papers = list(collection.find())
