@@ -29,7 +29,7 @@
         /* Styling for node labels */
         .labels text {
             font-family: sans-serif;
-            font-size: 10px;
+            /* font-size: 10px; */
             pointer-events: none; /* Prevent labels from capturing mouse events */
         }
 
@@ -37,6 +37,21 @@
         .highlighted {
             stroke: #e7c60fcb;
             stroke-width: 0.8px;
+        }
+
+        /* Highlighted node */
+        .highlighted-node {
+            fill: orange;
+        }
+
+        /* Highlighted link */
+        .highlighted-link {
+            stroke: orange;
+            stroke-width: 3px; /* Optional: Make highlighted links stand out more */
+        }
+
+        .connected-node {
+            fill: #ffa500; /* A lighter shade of orange */
         }
 
         /* Optional: Styling for the search box */
@@ -78,7 +93,7 @@
 
         // Parse the JSON data passed from Python
         const graph = JSON.parse('{{ data }}');
-
+        
         // Define SVG dimensions
         const width = window.innerWidth;
         const height = 800;
@@ -121,13 +136,24 @@
         // Define a scale for node sizes based on degree
         const sizeScale = d3.scaleSqrt()
             .domain([0, d3.max(graph.nodes, d => d.degree)]) // Input domain: min and max degree
-            .range([5, 40]); // Output range: min and max radius
+            .range([5, 45]); // Output range: min and max radius
+
+        const labelSizeScale = d3.scaleSqrt()
+            .domain([0, d3.max(graph.nodes, d => d.degree)]) // Input domain: min and max degree
+            .range([10, 40]); // Output range: min and max font size in pixels
+
+        const degreeColorScale = d3.scaleLinear()
+            .domain([0, 8]) // Define multiple domain points
+            .range(["lightblue", "blue"]) // Corresponding colors
+            .interpolate(d3.interpolateRgb) // Interpolate colors smoothly
+            .clamp(true); // Clamp values to the domain
 
         // Initialize force simulation
         const simulation = d3.forceSimulation(graph.nodes)
-            .force("link", d3.forceLink(graph.links).id(d => d.id).distance(170))
-            .force("charge", d3.forceManyBody().strength(-200))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+            .force("link", d3.forceLink(graph.links).id(d => d.id).distance(280))
+            .force("charge", d3.forceManyBody().strength(-150))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(d => sizeScale(d.degree) + 5).iterations(2)); // Added collision force
 
         // Add links (lines)
         const link = svg.append("g")
@@ -139,21 +165,18 @@
             .attr("stroke", "#999");
 
         // Add link labels
-        // const linkLabel = svg.append("g")
-        // .attr("class", "link-labels")
-        // .selectAll("text")
-        // .data(graph.links)
-        // .enter().append("text")
-        // .attr("class", "link-label")
-        // .attr("dy", -5)
-        // .attr("text-anchor", "middle")
-        // .attr("transform", d => {
-        //     const midX = (d.source.x + d.target.x) / 2;
-        //     const midY = (d.source.y + d.target.y) / 2;
-        //     const angle = calculateAngle(d.source, d.target);
-        //     return `translate(${midX}, ${midY}) rotate(${angle})`;
-        // })
-        // .text(d => d.type);
+        const linkLabel = svg.append("g")
+            .attr("class", "link-labels")
+            .selectAll("text")
+            .data(graph.links)
+            .enter().append("text")
+            .attr("class", "link-label")
+            .attr("dy", -5)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "20px") // Base font size; can be adjusted or made dynamic if needed
+            .attr("font-weight", "bold")
+            .text(d => d.type)
+            .attr("display", d => (d.source.degree > 9 && d.target.degree > 9) ? "block" : "none"); // Conditional display
 
         // Add nodes (circles)
         const node = svg.append("g")
@@ -162,7 +185,7 @@
             .data(graph.nodes)
             .enter().append("circle")
             .attr("r", d => sizeScale(d.degree))
-            .attr("fill", d => color(d.group))
+            .attr("fill", d => degreeColorScale(d.degree))
             .call(drag(simulation));
 
         // Add node labels
@@ -173,12 +196,105 @@
             .enter().append("text")
             .attr("dy", -15)
             .attr("text-anchor", "middle")
+            .attr("font-size", d => labelSizeScale(d.degree))
             .text(d => d.label);
 
         // Add tooltips to nodes
         node.append("title")
             .text(d => d.description);
 
+        // Create a map of node id to neighbors
+        const adjacencyMap = {};
+        graph.nodes.forEach(node => {
+            adjacencyMap[node.id] = new Set();
+        });
+        graph.links.forEach(link => {
+            adjacencyMap[link.source.id].add(link.target.id);
+            adjacencyMap[link.target.id].add(link.source.id);
+        });
+
+        // Initialize a variable to keep track of the currently selected node
+        let selectedNode = null;
+
+        // Attach click event to nodes
+        node.on('click', function(event, d) {
+            // Prevent default behavior (if any)
+            event.preventDefault();
+
+            // If the clicked node is already selected, deselect it
+            if (selectedNode === d) {
+                resetHighlights();
+                selectedNode = null;
+            } else {
+                // Select the new node
+                selectedNode = d;
+                highlightSelectedNode(d);
+            }
+        });
+
+        // Function to reset all highlights
+        function resetHighlights() {
+            // Remove highlighted-node and connected-node classes from all nodes
+            node.classed('highlighted-node', false)
+                .classed('connected-node', false);
+            
+            // Remove highlighted-link class from all links
+            link.classed('highlighted-link', false);
+        }
+
+        // Function to highlight the selected node and its connections
+        function highlightSelectedNode(nodeData) {
+            resetHighlights(); // Clear any existing highlights
+
+            // Highlight the selected node
+            d3.select(this).classed('highlighted-node', true); // 'this' refers to the clicked node
+
+            // Alternatively, since 'this' inside the function may not refer correctly,
+            // use D3's selection. To ensure correct selection, modify the click handler.
+
+            // Find all directly connected node IDs
+            const connectedNodeIds = adjacencyMap[nodeData.id];
+
+            // Highlight the selected node
+            node.filter(d => d.id === nodeData.id)
+                .classed('highlighted-node', true);
+
+            // Highlight all directly connected nodes
+            node.filter(d => connectedNodeIds.has(d.id))
+                .classed('connected-node', true);
+
+            // Highlight all links connected to the selected node
+            link.filter(l => l.source.id === nodeData.id || l.target.id === nodeData.id)
+                .classed('highlighted-link', true);
+
+            // Highlight all links connected to the directly connected nodes (indirect links)
+            link.filter(l => connectedNodeIds.has(l.source.id) || connectedNodeIds.has(l.target.id))
+                .classed('highlighted-link', true);
+        }
+
+        // Correct the highlightSelectedNode function to properly handle 'this'
+        function highlightSelectedNode(nodeData) {
+            resetHighlights(); // Clear any existing highlights
+
+            // Highlight the selected node
+            node.filter(d => d.id === nodeData.id)
+                .classed('highlighted-node', true);
+
+            // Find all directly connected node IDs
+            const connectedNodeIds = adjacencyMap[nodeData.id];
+
+            // Highlight all directly connected nodes
+            node.filter(d => connectedNodeIds.has(d.id))
+                .classed('connected-node', true);
+
+            // Highlight all links connected to the selected node
+            link.filter(l => l.source.id === nodeData.id || l.target.id === nodeData.id)
+                .classed('highlighted-link', true);
+
+            // Highlight all links connected to the directly connected nodes (indirect links)
+            link.filter(l => connectedNodeIds.has(l.source.id) || connectedNodeIds.has(l.target.id))
+                .classed('highlighted-link', true);
+        }
 
         // Handle simulation tick events
         simulation.on("tick", () => {
@@ -200,13 +316,13 @@
                 .attr("y", d => d.y);
 
             // Update link label positions (midpoint of links)
-            // linkLabel
-            //     .attr("transform", d => {
-            //         const midX = (d.source.x + d.target.x) / 2;
-            //         const midY = (d.source.y + d.target.y) / 2;
-            //         const angle = calculateAngle(d.source, d.target);
-            //         return `translate(${midX}, ${midY}) rotate(${angle})`;
-            //     });
+            linkLabel
+                .attr("transform", d => {
+                    const midX = (d.source.x + d.target.x) / 2;
+                    const midY = (d.source.y + d.target.y) / 2;
+                    const angle = calculateAngle(d.source, d.target);
+                    return `translate(${midX}, ${midY}) rotate(${angle})`;
+                });
         });
 
         // Zoom handler
@@ -217,7 +333,7 @@
         // Drag event handlers
         function drag(simulation) {
             function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
+                if (!event.active) simulation.alphaTarget(0.2).restart();
                 d.fx = d.x;
                 d.fy = d.y;
             }
