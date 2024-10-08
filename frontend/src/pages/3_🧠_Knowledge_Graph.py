@@ -30,7 +30,7 @@ class Neo4jConnection:
         """
         self.driver.close()
     
-    def fetch_graph_data(self, cypher: str = "MATCH (s)-[r:!MENTIONS]->(t) RETURN s,r,t LIMIT 200") -> Dict[str, Any]:
+    def fetch_graph_data(self, cypher: str = "MATCH (s)-[r:!MENTIONS]->(t) RETURN s,r,t LIMIT 500") -> Dict[str, Any]:
         """
         Fetches nodes and relationships from the Neo4j graph database based on the provided Cypher query.
 
@@ -78,31 +78,7 @@ class Neo4jConnection:
                 })
             
             return {'nodes': list(nodes.values()), 'links': edges}
-        
-    def fetchGraphData(self, uri: str, username: str, password: str, cypher: str = "MATCH (s)-[r:!MENTIONS]->(t) RETURN s,r,t LIMIT 50"):
-        with self.driver.session() as session:
-            result = session.run(cypher)
-
-            # Convert results to a format suitable for JSON
-            graph_data = []
-            for record in result:
-                source = record['s']
-                relationship = record['r']
-                target = record['t']
-                
-                graph_data.append({
-                    'source': dict(source),  # Convert Node to dict
-                    'relationship': {
-                        'type': relationship.type,  # Extract relationship type
-                        'properties': dict(relationship)  # Convert Relationship properties to dict
-                    },
-                    'target': dict(target)  # Convert Node to dict
-                })
-        
-        session.close()
-        return graph_data
-        # return {'nodes': [node for node in graph_data if 'source' not in node], 'links': [link for link in graph_data if 'source' in link]}
-    
+            
 def prepare_data_for_d3(graph_data):
     # graph_data is a dictionary with 'nodes' and 'links'
     return json.dumps(graph_data)
@@ -121,8 +97,8 @@ def main():
     graph_json = prepare_data_for_d3(graph_data)
 
     # Checking
-    # with open("sample.json", "w") as outfile:  
-    #     outfile.write(graph_json)
+    with open("sample.json", "w") as outfile:  
+        outfile.write(graph_json)
 
     # Read the HTML template
     with open("knowledge_graph.html", "r") as f:

@@ -95,10 +95,38 @@
         // Color scale for node groups
         const color = d3.scaleOrdinal(d3.schemeCategory10);
 
+        // Compute node degrees
+        function computeNodeDegrees(nodes, links) {
+            const degreeMap = {};
+
+            // Initialize degree map
+            nodes.forEach(node => {
+                degreeMap[node.id] = 0;
+            });
+
+            // Count degrees
+            links.forEach(link => {
+                degreeMap[link.source] += 1;
+                degreeMap[link.target] += 1;
+            });
+
+            // Assign degree to nodes
+            nodes.forEach(node => {
+                node.degree = degreeMap[node.id];
+            });
+        }
+
+        computeNodeDegrees(graph.nodes, graph.links);
+
+        // Define a scale for node sizes based on degree
+        const sizeScale = d3.scaleSqrt()
+            .domain([0, d3.max(graph.nodes, d => d.degree)]) // Input domain: min and max degree
+            .range([5, 40]); // Output range: min and max radius
+
         // Initialize force simulation
         const simulation = d3.forceSimulation(graph.nodes)
             .force("link", d3.forceLink(graph.links).id(d => d.id).distance(170))
-            .force("charge", d3.forceManyBody().strength(-250))
+            .force("charge", d3.forceManyBody().strength(-200))
             .force("center", d3.forceCenter(width / 2, height / 2));
 
         // Add links (lines)
@@ -111,21 +139,21 @@
             .attr("stroke", "#999");
 
         // Add link labels
-        const linkLabel = svg.append("g")
-        .attr("class", "link-labels")
-        .selectAll("text")
-        .data(graph.links)
-        .enter().append("text")
-        .attr("class", "link-label")
-        .attr("dy", -5)
-        .attr("text-anchor", "middle")
-        .attr("transform", d => {
-            const midX = (d.source.x + d.target.x) / 2;
-            const midY = (d.source.y + d.target.y) / 2;
-            const angle = calculateAngle(d.source, d.target);
-            return `translate(${midX}, ${midY}) rotate(${angle})`;
-        })
-        .text(d => d.type);
+        // const linkLabel = svg.append("g")
+        // .attr("class", "link-labels")
+        // .selectAll("text")
+        // .data(graph.links)
+        // .enter().append("text")
+        // .attr("class", "link-label")
+        // .attr("dy", -5)
+        // .attr("text-anchor", "middle")
+        // .attr("transform", d => {
+        //     const midX = (d.source.x + d.target.x) / 2;
+        //     const midY = (d.source.y + d.target.y) / 2;
+        //     const angle = calculateAngle(d.source, d.target);
+        //     return `translate(${midX}, ${midY}) rotate(${angle})`;
+        // })
+        // .text(d => d.type);
 
         // Add nodes (circles)
         const node = svg.append("g")
@@ -133,7 +161,7 @@
             .selectAll("circle")
             .data(graph.nodes)
             .enter().append("circle")
-            .attr("r", 15)
+            .attr("r", d => sizeScale(d.degree))
             .attr("fill", d => color(d.group))
             .call(drag(simulation));
 
@@ -172,13 +200,13 @@
                 .attr("y", d => d.y);
 
             // Update link label positions (midpoint of links)
-            linkLabel
-                .attr("transform", d => {
-                    const midX = (d.source.x + d.target.x) / 2;
-                    const midY = (d.source.y + d.target.y) / 2;
-                    const angle = calculateAngle(d.source, d.target);
-                    return `translate(${midX}, ${midY}) rotate(${angle})`;
-                });
+            // linkLabel
+            //     .attr("transform", d => {
+            //         const midX = (d.source.x + d.target.x) / 2;
+            //         const midY = (d.source.y + d.target.y) / 2;
+            //         const angle = calculateAngle(d.source, d.target);
+            //         return `translate(${midX}, ${midY}) rotate(${angle})`;
+            //     });
         });
 
         // Zoom handler
