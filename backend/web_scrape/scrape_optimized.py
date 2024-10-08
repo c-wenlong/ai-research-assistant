@@ -8,10 +8,14 @@ import openai
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
+from datetime import datetime
 
+from .gap_analysis import perform_gap_analysis
 from .mongo_utils import save_to_mongodb
 
 load_dotenv()
+
+NCBI_API_KEY = os.getenv("NCBI_API_KEY")
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -25,15 +29,19 @@ def clean_parsed_sections(text):
 
 async def fetch_full_text(session, pmc_id):
     url = f"https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_xml/{pmc_id}/unicode"
-    async with session.get(url) as response:
-        if response.status == 200:
-            return await response.read()
-        elif response.status == 429:
-            print(f"Rate limit exceeded for {pmc_id}. Retrying after a delay...")
-            await asyncio.sleep(1)  # Wait before retrying
-            return await fetch_article_metadata(session, pmc_id)  # Retry fetching metadata
-        print(f"No full text available for PMC ID: {pmc_id}. Status: {response.status}")
-        return None
+    for attempt in range(5):  # Retry up to 5 times
+        async with session.get(url) as response:
+            if response.status == 200:
+                return await response.read()
+            elif response.status == 429:  # Rate limit exceeded
+                wait_time = 2 ** attempt
+                print(f"Rate limit exceeded for {pmc_id}. Retrying in {wait_time} seconds...")
+                await asyncio.sleep(wait_time)
+                continue
+            else:
+                print(f"Failed to retrieve full text for {pmc_id}. Status: {response.status}")
+                return None
+    return None
 
 async def search_open_access_articles(session, query, retmax):
     url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -42,6 +50,7 @@ async def search_open_access_articles(session, query, retmax):
         'term': query,
         'retmode': 'xml',
         'retmax': retmax,
+        'api_key': NCBI_API_KEY
     }
     async with session.get(url, params=params) as response:
         if response.status == 200:
@@ -49,22 +58,25 @@ async def search_open_access_articles(session, query, retmax):
         print(f"Failed to retrieve search results. Status code: {response.status}")
         return None
 
-async def fetch_article_metadata(session, pmc_id):
+
+async def fetch_article_metadata(session, pmc_id, retries=3, delay=0.5):
     url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
     params = {
         'db': 'pmc',
         'id': pmc_id.replace("PMC", ""),  # Remove "PMC" prefix for the API call
-        'retmode': 'xml'
+        'retmode': 'xml',
+        'api_key': NCBI_API_KEY
     }
-    async with session.get(url, params=params) as response:
-        if response.status == 200:
-            return await response.read()
-        elif response.status == 429:
-            print(f"Rate limit exceeded for {pmc_id}. Retrying after a delay...")
-            await asyncio.sleep(1)  # Wait before retrying
-            return await fetch_article_metadata(session, pmc_id)  # Retry fetching metadata
-        print(f"Failed to fetch metadata for {pmc_id}. Status code: {response.status}")
-        return None
+    for attempt in range(retries):
+        async with session.get(url, params=params) as response:
+            if response.status == 200:
+                return await response.read()
+            elif response.status == 429:
+                print(f"Rate limit exceeded for {pmc_id}. Retrying (attempt {attempt + 1})...")
+                await asyncio.sleep(delay)
+                delay *= 2  # Increase delay for next attempt
+    print(f"Failed to fetch metadata for {pmc_id}. Status code: {response.status}")
+    return None
 
 def parse_metadata(xml_content):
     metadata = {}
@@ -86,7 +98,7 @@ async def check_full_text_availability(session, pmc_id):
         return response.status == 200
 
 async def summarize_sections(article):
-    sections_to_summarize = ['introduction', 'abstract', 'methods', 'results', 'discussion', 'Conclusion']
+    sections_to_summarize = ['introduction', 'abstract', 'methods', 'results', 'discussion', 'conclusion']
     summaries = {}
 
     for section in sections_to_summarize:
@@ -110,7 +122,7 @@ async def summarize_sections(article):
                     {"role": "system", "content": "You are a research summarizing assistant who generates concise, formatted summaries."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=150  # Set an appropriate limit for concise summaries
+                max_tokens=1100  # Set an appropriate limit for concise summaries
             )
 
             # Update this line to correctly access the response content
@@ -155,10 +167,20 @@ def parse_bioc_xml(xml_text):
 def calculate_score(metadata):
     score = 0
     pub_date = metadata.get("publication_date")
+    
     if pub_date:
-        pub_year = int(pub_date.split()[0])
-        current_year = datetime.now().year
-        score += max(0, 10 - (current_year - pub_year))
+        # Update the date parsing to match the provided format
+        pub_date = datetime.strptime(pub_date, "%Y %b %d")
+        current_date = datetime.now()
+        
+        # Calculate the difference in days between the current date and the publication date
+        delta_days = (current_date - pub_date).days
+        
+        # Score based on recency: the more recent, the higher the score
+        # Assuming we want to score up to 10 points for the most recent papers
+        # Score decreases linearly over time (e.g., 1 point for each month or 30 days)
+        score = max(0, 10 - (delta_days // 30))  # Score reduces by 1 for each month older
+        
     return score
 
 def count_filled_sections(parsed_sections):
@@ -170,10 +192,12 @@ async def main(user_input):
     start_time = time.time()  # Start timer for the entire script
     # user_input = "microbiome"
     search_query = user_input + " [Title/Abstract] AND open access[filter]"
+
+    timeout = aiohttp.ClientTimeout(total=60)  # Extend timeout to 60 seconds
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         # Step 1: Search for articles
-        search_results = await search_open_access_articles(session, search_query, retmax=12)
+        search_results = await search_open_access_articles(session, search_query, retmax=30)
 
         if search_results:
             tree = ET.fromstring(search_results)
@@ -205,7 +229,7 @@ async def main(user_input):
             # Step 4: Sort articles by score (higher is better)
             available_articles.sort(key=lambda x: x['score'], reverse=True)
 
-            # Step 5: Fetch and parse full text for available articles concurrently
+            # Step : Fetch and parse full text for available articles concurrently
             parsed_articles = []
             tasks = [fetch_full_text(session, article['pmc_id']) for article in available_articles]
             full_text_results = await asyncio.gather(*tasks)
@@ -222,21 +246,49 @@ async def main(user_input):
                     except Exception as e:
                         print(f"Error parsing full text for {article['pmc_id']}: {e}")
 
-            # Step 6: Save only the top 5 parsed articles to MongoDB
-            parsed_articles.sort(key=lambda x: x['filled_sections_count'], reverse=True)
-            top_5_articles = parsed_articles[:5]  # Get only the top 5 articles
-            save_to_mongodb(top_5_articles, 'raw_fields_article')
+            # Step 6: Save only the top 10 parsed articles to MongoDB
+            parsed_articles.sort(key=lambda x: (x['filled_sections_count'], x['score']), reverse=True)
+            top_10_articles = parsed_articles[:10]  # Get only the top 10 articles
+            save_to_mongodb(top_10_articles, 'raw_fields_article')
 
             # Step 7: Summarize relevant sections and save to a new collection
             summaries = []
-            tasks = [summarize_sections(article) for article in top_5_articles]
+            tasks = [summarize_sections(article) for article in top_10_articles]
             summary_results = await asyncio.gather(*tasks)
 
-            for article, summary in zip(top_5_articles, summary_results):
+            for article, summary in zip(top_10_articles, summary_results):
                 article.update(summary)  # Add summaries to the article
                 summaries.append(article)
 
             save_to_mongodb(summaries, 'summarized_fields_article')
+
+            # Step 8: Perform gap analysis
+            gaps = await perform_gap_analysis(summaries, user_input)
+            
+            if gaps and isinstance(gaps, dict) and 'analysis' in gaps and gaps['analysis']:
+                if isinstance(gaps['analysis'], list) and len(gaps['analysis']) > 0:
+                    for gap in gaps['analysis']:
+                        try:
+                            await save_to_mongodb([gap], 'gap_individual_articles')
+                        except Exception as e:
+                            print(f"Error saving gap analysis: {e}")
+
+                # Handle comparison section
+                if 'comparison_section' in gaps and gaps['comparison_section']:
+                    # Check if the comparison section is a dictionary
+                    comparison_data = {
+                        'commonalities': gaps['comparison_section'].get('commonalities', []),
+                        'contrasts': gaps['comparison_section'].get('contrasts', []),
+                        'emerging_trends': gaps['comparison_section'].get('emerging_trends', [])
+                    }
+                    try:
+                        await save_to_mongodb([comparison_data], 'gap_comparison_section')  # Wrap in list
+                    except Exception as e:
+                        print(f"Error saving comparison section item: {e}")
+                    else:
+                        print("Comparison section is not a dictionary.")
+            else:
+                print("No valid gaps to save.")
 
             end_time = time.time()  # End timer for the entire script
             print(f"\nTotal time taken for the script to run: {end_time - start_time:.2f} seconds")

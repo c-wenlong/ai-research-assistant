@@ -11,6 +11,7 @@ import threading
 import time
 import json
 from flask_caching import Cache
+from threading import Thread
 
 load_dotenv()
 
@@ -25,6 +26,9 @@ client = MongoClient(mongo_uri)
 db = client['research_articles']
 summarized_collection = db['summarized_fields_article']
 raw_collection = db['raw_fields_article']
+
+gap_individual_articles_collection = db['gap_individual_articles']
+gap_comparison_section_collection = db['gap_comparison_section']
 
 @app.route('/articles-summarized', methods=['GET'])
 def get_articles_summarized():
@@ -55,32 +59,6 @@ def produce_code():
     response = cg.code_generation(user_input)
     
     return jsonify({"response": response})
-    
-# @app.route('/web_search', methods=['POST'])
-# def search_articles():
-#     try:
-#         print("Search endpoint hit")
-        
-#         # Get the user input from the request body
-#         user_input = request.json.get('query')
-#         if not user_input:
-#             print("No query provided")
-#             return jsonify({"error": "No query provided"}), 400  # Return if no query
-        
-#         print(f"Received query: {user_input}")
-        
-#         # Ensure the main function runs and completes successfully
-#         asyncio.run(main(user_input))
-        
-#         # After main completes, return a success message
-#         return jsonify({"message": "Search completed successfully."}), 200
-
-#     except Exception as e:
-#         # Catch all exceptions and log the full stack trace
-#         print("Error during search:", e)
-#         print(traceback.format_exc())  # Full traceback for debugging
-#         return jsonify({"error": "Search failed", "details": str(e)}), 500
-
 
 @app.route('/web_search', methods=['POST'])
 def search_articles():
@@ -90,16 +68,29 @@ def search_articles():
     try:
         summarized_collection.delete_many({})
         raw_collection.delete_many({})
+        gap_individual_articles_collection.delete_many({})
+        gap_comparison_section_collection.delete_many({})
     except Exception as e:
         print(f"Error clearing collections: {e}")
         return jsonify({"error": "Failed to clear collections", "details": str(e)}), 500
     
     print(f"Received query: {user_input}")
 
-    # Run the async main function using asyncio.run()
-    asyncio.run(main(user_input))
-    threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
+    # Define a function to wrap the asyncio.run() call in a thread
+    def run_async_main():
+        asyncio.run(main(user_input))
+
+    # Start the thread to run the async function
+    thread = Thread(target=run_async_main)
+    thread.start()
+    thread.join()
+
     return jsonify({"message": "Search completed successfully."}), 200
+
+    # # Run the async main function using asyncio.run()
+    # asyncio.run(main(user_input))
+    # # threading.Thread(target=rf.create_knowledge_graph, args=(mongo_uri, 'research_articles', 'raw_fields_article', llm)).start()
+    # return jsonify({"message": "Search completed successfully."}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)

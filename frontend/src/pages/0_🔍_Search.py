@@ -119,37 +119,6 @@ def json_to_text(papers):
     return "\n".join(processed_papers)
 
 
-# Function to process the JSON file
-def process_json(current_trends):
-    # Remove triple backticks and strip whitespace
-    cleaned_summary = current_trends.strip().lstrip("`").rstrip("`").strip()
-
-    try:
-        # Attempt to parse the JSON
-        paper_data = json.loads(cleaned_summary)
-        return paper_data
-    except json.JSONDecodeError as e:
-        st.error(f"Error parsing JSON: {str(e)}")
-
-        # Debug: Show the problematic part of the JSON
-        error_position = e.pos
-        start = max(0, error_position - 20)
-        end = min(len(cleaned_summary), error_position + 20)
-        problematic_part = cleaned_summary[start:end]
-        st.text("Problematic part of the JSON:")
-        st.code(f"...{problematic_part}...")
-
-        # If the string is empty, show a specific message
-        if not cleaned_summary:
-            st.error("The cleaned summary is empty. Please check the input data.")
-
-        # Show the full cleaned summary for manual inspection
-        st.text("Full cleaned summary:")
-        st.code(cleaned_summary)
-
-        return None
-
-
 # Main functions
 def load_database_pubmed():
     papers, client = fetch_data_from_mongodb_pubmed()
@@ -178,20 +147,25 @@ def load_database_pubmed():
     client.close()
     return all_data
 
-
-def load_table(all_data, type):
+def load_table(all_data):
     display_df = pd.DataFrame(all_data)
     gb = GridOptionsBuilder.from_dataframe(display_df)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar(filters_panel=True, columns_panel=True)
+    
+    # Ensure columns are sortable
     gb.configure_default_column(
         wrapText=True,
         autoHeight=True,
         maxWidth=500,
         groupable=True,
         cellStyle={"white-space": "pre-wrap"},
+        sortable=True  # Make columns sortable
     )
+    
+    gb.configure_pagination(paginationAutoPageSize=True)
+    gb.configure_side_bar(filters_panel=True, columns_panel=True)
+    
     gridOptions = gb.build()
+    
     AgGrid(
         display_df,
         gridOptions=gridOptions,
@@ -199,70 +173,34 @@ def load_table(all_data, type):
         enable_enterprise_modules=True,
         height=500,
         theme="streamlit",
+        key="ag_grid_" + str(time.time()),
     )
 
 
-# Function to get current trends and insights
-def get_current_trends_and_insights(prompt, text, topic):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    try:
-        # Call the OpenAI API with GPT-4
-        userPrompt = (
-            f"Analyze the research papers and conduct a web search on {topic}. "
-            f"Provide up to 5 entries of current trends, missing gaps, and future developments "
-            f"related to this topic in the specified JSON format "
-            f"and only output the JSON structure and no additional text. Remove ``` from the beginning and end of the JSON structure."
-            + text
-        )
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Specify GPT-4 model
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": userPrompt},
-            ],
-        )
+# Function to fetch individual articles gaps from MongoDB
+def fetch_individual_articles_gaps():
+    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    db = client["research_articles"]
+    collection = db["gap_individual_articles"]
 
-        # Extract and return the response text
-        client.close()
-        return response.choices[0].message.content
+    # Retrieve all documents from the collection
+    gaps = list(collection.find())
+    client.close()
+    return gaps
 
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        return None
+# Function to fetch papers comparison gaps from MongoDB
+def fetch_papers_comparison_gaps():
+    client = pymongo.MongoClient(os.getenv("MONGODB_URI"))
+    db = client["research_articles"]
+    collection = db["gap_comparison_section"]
 
-
-def display_trends_table(current_trends):
-    display_df = pd.DataFrame(current_trends)
-    # Define the new column names
-    new_column_names = ["Current Trends", "Missing Gaps", "Future Developments"]
-
-    # Rename the columns
-    display_df.columns = new_column_names
-    gb = GridOptionsBuilder.from_dataframe(display_df)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar(filters_panel=True, columns_panel=True)
-    gb.configure_default_column(
-        wrapText=True,
-        autoHeight=True,
-        maxWidth=500,
-        groupable=True,
-        cellStyle={"white-space": "pre-wrap"},
-    )
-
-    gridOptions = gb.build()
-    AgGrid(
-        display_df,
-        gridOptions=gridOptions,
-        fit_columns_on_grid_load=False,
-        enable_enterprise_modules=True,
-        height=500,
-        theme="streamlit",
-        allow_unsafe_jscode=True,  # This is needed for custom JavaScript renderers
-    )
-
+    # Retrieve all documents from the collection
+    gaps = list(collection.find())
+    client.close()
+    return gaps
 
 # Optional: Add a title before the table
-st.title("Current Trends, Missing Gaps, and Future Developments")
+st.title("🔍 Search")
 
 # Define the backend endpoint (replace with your actual endpoint URL)
 BACKEND_URL = "http://127.0.0.1:5000/web_search"
@@ -274,29 +212,71 @@ search_query = st.text_input("Enter your search query", "")
 def main():
     message_placeholder = st.empty()
     message_placeholder.success("Fetching articles and summarizing them...")
-    st.subheader("Top Research Articles from PubMed")
+    st.subheader("Top Research Articles by Recency")
     all_data = load_database_pubmed()
     message_placeholder.success("Fetch successful!")
-    load_table(all_data, "pubmed")
+    load_table(all_data)
     message_placeholder.empty()
 
-    # Create current trends and insights
-    st.title("Current Trends and Insights")
-    success_placeholder = st.empty()
+    st.markdown("---")
 
-    with st.spinner("Generating current trends and insights..."):
-        prompt = process_md("./frontend/src/assets/research-analysis-prompt.md")
-        processed_data = json_to_text(all_data)
-        current_trends = get_current_trends_and_insights(
-            prompt, processed_data, search_query
-        )
-        processed_current_trends = process_json(current_trends)
-        display_trends_table(processed_current_trends)
+    # Papers comparison gap analysis
+    st.subheader("Papers Comparison Gap Analysis")
+    print()
+    comparison_gaps = fetch_papers_comparison_gaps()
+
+    if comparison_gaps:
+        # Loop through each gap and display it in a more narrative format
+        for index, gap in enumerate(comparison_gaps):
+            # Extracting lists for each category
+            commonalities = gap.get('commonalities', [])
+            contrasts = gap.get('contrasts', [])
+            emerging_trends = gap.get('emerging_trends', [])
+
+            st.markdown("###### Commonalities")
+            if commonalities:
+                for commonality in commonalities:
+                    st.write(f"- {commonality}")
+            else:
+                st.write("No commonalities found.")
+
+            st.markdown("###### Contrasts")
+            if contrasts:
+                for contrast in contrasts:
+                    st.write(f"- {contrast}")
+            else:
+                st.write("No contrasts found.")
+
+            st.markdown("###### Emerging Trends")
+            if emerging_trends:
+                for trend in emerging_trends:
+                    st.write(f"- {trend}")
+            else:
+                st.write("No emerging trends found.")
+
+            st.markdown("---")  # Add a horizontal line for separation between gaps
+    else:
+        st.warning("No gaps found for paper comparisons.")
+
+    # Individual paper gap analysis
+    st.subheader("Individual Paper Gap Analysis")
+    individual_gaps = fetch_individual_articles_gaps()
+    if individual_gaps:
+        # Create a DataFrame from the individual gaps data
+        display_df_individual = pd.DataFrame(individual_gaps)
         
-    success_placeholder.success("Loading complete!")
-    time.sleep(3)
-    success_placeholder.empty()
+        # Normalize the gap_categories column to create separate columns for each gap type
+        gap_df = display_df_individual['gap_categories'].apply(pd.Series)
 
+        # Combine the original DataFrame with the new gap categories DataFrame
+        display_data = pd.concat([display_df_individual[['article_title', 'recommendations']], gap_df], axis=1)
+
+        # Optionally, you may want to fill NaN values with empty lists or a default value
+        display_data = display_data.fillna("")
+
+        load_table(display_data)
+    else:
+        st.warning("No gaps found for individual papers.")
 
 # Search button to trigger the API request
 if st.button("Search"):
@@ -306,22 +286,13 @@ if st.button("Search"):
                 # Sending request to the backend API
                 print(f"Sending query: {search_query}")
                 response = requests.post(
-                    BACKEND_URL, json={"query": search_query}, stream=True
+                    BACKEND_URL, json={"query": search_query}
                 )
 
                 # Check for the response status
                 if response.status_code == 200:
                     st.success("Search completed successfully.")
                     main()
-                    """
-                    # Reading the streamed response
-                    for chunk in response.iter_lines():
-                        if chunk:
-                            # Decode the chunk and process it as per backend response structure
-                            result = json.loads(chunk.decode("utf-8"))
-                            st.write(result)
-                            time.sleep(1)  # Simulate delay between chunks
-                    """
                 else:
                     st.error(f"Error: {response.status_code} - {response.text}")
 
@@ -330,5 +301,3 @@ if st.button("Search"):
 
     else:
         st.warning("Please enter a search query")
-
-main()
