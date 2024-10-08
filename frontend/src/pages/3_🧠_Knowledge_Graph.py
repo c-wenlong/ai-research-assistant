@@ -121,8 +121,8 @@ def main():
     graph_json = prepare_data_for_d3(graph_data)
 
     # Checking
-    with open("sample.json", "w") as outfile:  
-        outfile.write(graph_json)
+    # with open("sample.json", "w") as outfile:  
+    #     outfile.write(graph_json)
 
     # Read the HTML template
     with open("knowledge_graph.html", "r") as f:
