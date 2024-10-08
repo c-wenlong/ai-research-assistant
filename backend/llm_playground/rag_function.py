@@ -29,6 +29,11 @@ from langchain_experimental.graph_transformers import LLMGraphTransformer
 from dotenv import load_dotenv
 import time
 
+# Uncomment the following line to enable debugging
+# from neo4j.debug import watch
+# watch("neo4j")
+
+...  # your code here
 # Initialise Neo4j db and env settings
 load_dotenv()
 
