@@ -197,7 +197,7 @@ async def main(user_input):
     
     async with aiohttp.ClientSession(timeout=timeout) as session:
         # Step 1: Search for articles
-        search_results = await search_open_access_articles(session, search_query, retmax=30)
+        search_results = await search_open_access_articles(session, search_query, retmax=20)
 
         if search_results:
             tree = ET.fromstring(search_results)
@@ -246,17 +246,17 @@ async def main(user_input):
                     except Exception as e:
                         print(f"Error parsing full text for {article['pmc_id']}: {e}")
 
-            # Step 6: Save only the top 10 parsed articles to MongoDB
+            # Step 6: Save only the top 5 parsed articles to MongoDB
             parsed_articles.sort(key=lambda x: (x['filled_sections_count'], x['score']), reverse=True)
-            top_10_articles = parsed_articles[:10]  # Get only the top 10 articles
-            save_to_mongodb(top_10_articles, 'raw_fields_article')
+            top_5_articles = parsed_articles[:5]  # Get only the top 5 articles
+            save_to_mongodb(top_5_articles, 'raw_fields_article')
 
             # Step 7: Summarize relevant sections and save to a new collection
             summaries = []
-            tasks = [summarize_sections(article) for article in top_10_articles]
+            tasks = [summarize_sections(article) for article in top_5_articles]
             summary_results = await asyncio.gather(*tasks)
 
-            for article, summary in zip(top_10_articles, summary_results):
+            for article, summary in zip(top_5_articles, summary_results):
                 article.update(summary)  # Add summaries to the article
                 summaries.append(article)
 

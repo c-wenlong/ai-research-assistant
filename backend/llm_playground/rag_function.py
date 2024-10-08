@@ -148,7 +148,7 @@ def create_knowledge_graph(client, mongo_uri: str, db_name: str, collection_name
                 include_source=True
             )
     
-    client.close()
+    # client.close()
     print("Knowledge graph creation completed")
     end_time = time.time()
     print("Time taken for Knowledge Graph Generation: ", end_time-start_time)

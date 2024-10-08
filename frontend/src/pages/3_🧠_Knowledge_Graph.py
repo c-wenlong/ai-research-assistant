@@ -5,6 +5,9 @@ import streamlit.components.v1 as components
 import streamlit as st
 import json
 from typing import Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Connect to Neo4j
 neo4j_uri = os.getenv("NEO4J_URI")
