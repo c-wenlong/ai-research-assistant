@@ -49,7 +49,7 @@ def generate_assistant_response(user_input):
     with st.chat_message("assistant"):
         # Call the Flask API
         response = requests.post(
-            "http://127.0.0.1:5000/api/get_response", json={"user_input": user_input}
+            "https://aira-77ad510980a9.herokuapp.com/api/get_response", json={"user_input": user_input}
         )
 
         if response.status_code == 200:

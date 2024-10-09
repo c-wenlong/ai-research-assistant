@@ -1,33 +1,53 @@
-streamlit
+## FRONTEND
+# web requests
+requests
+
+# environment configuration
+python-dotenv
+
+# database interaction
+pymongo
+neo4j
+
+# data processing and analysis
 pandas
 
-#table
+# ai/ml integration
+openai
+
+# pdf parsing
+PyPDF2
+
+# ui components
+streamlit
 streamlit-aggrid
 
-#ai
+## BACKEND
+# web framework
+flask
+Flask-Caching  # Correct pip install name
+
+# environment configuration
+python-dotenv
+
+# ai/ml integration
 openai
 anthropic
-
-# parse pdf
-PyPDF2
-pikepdf
-
-matplotlib
-
 langchain 
 langchain-community 
 langchain-openai 
 langchain-experimental 
-neo4j 
-tiktoken 
-yfiles_jupyter_graphs
+
+# pdf parsing
+pdfplumbers
+
+# database interaction
+neo4j
 pymongo
 
+# web requests
+requests
 aiohttp
-python-dotenv
-pyvis
 
-flask
-plotly
-pdfplumber
-Flask-Caching
+# data processing and utilities
+pydantic

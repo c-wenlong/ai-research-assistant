@@ -1,7 +1,4 @@
 import streamlit as st
-import pandas as pd
-from PIL import Image
-import plotly.express as px
 
 st.set_page_config(
     page_title="AIRA - Artificial Intelligence Research Assistant",

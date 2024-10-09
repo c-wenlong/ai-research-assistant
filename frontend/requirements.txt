@@ -1,0 +1,22 @@
+# web requests
+requests
+
+# environment configuration
+python-dotenv
+
+# database interaction
+pymongo
+neo4j
+
+# data processing and analysis
+pandas
+
+# ai/ml integration
+openai
+
+# pdf parsing
+PyPDF2
+
+# ui components
+streamlit
+streamlit-aggrid

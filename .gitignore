@@ -1,14 +1,19 @@
+# environment files
+.env
 myvenv/
 .streamlit/
-__pycache__/
-.DS_Store
-.vscode/
 backend/.env
 backend/llm_playground/.env
 backend/llm_playground/venv
-test.py
-.env
-search_archive.py
-aira_archive.py
+
+# caches
+__pycache__/
+
+# ide
+.DS_Store
+.vscode/
+
+# research papers
 paper_json/
 research_papers/
+

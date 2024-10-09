@@ -161,7 +161,7 @@ if uploaded_file is not None:
     if st.button("Generate Code"):
         try:
             response = requests.post(
-                "http://127.0.0.1:5000/api/generate_code", json={"user_input": text}
+                "https://aira-77ad510980a9.herokuapp.com/api/generate_code", json={"user_input": text}
             )
             if response.status_code == 200:
                 response_data = response.json()

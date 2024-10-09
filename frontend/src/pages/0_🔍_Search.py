@@ -1,12 +1,9 @@
-import ast
-import re
 import streamlit as st
 import requests
 import json
 import time
 from dotenv import load_dotenv
 import pymongo
-from openai import OpenAI
 import os
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 import pandas as pd
@@ -203,7 +200,7 @@ def fetch_papers_comparison_gaps():
 st.title("🔍 Search")
 
 # Define the backend endpoint (replace with your actual endpoint URL)
-BACKEND_URL = "http://127.0.0.1:5000/web_search"
+BACKEND_URL = "https://aira-77ad510980a9.herokuapp.com/web_search"
 
 # Minimalistic search bar UI
 search_query = st.text_input("Enter your search query", "")
