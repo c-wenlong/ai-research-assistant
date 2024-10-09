@@ -104,7 +104,7 @@ def main():
         outfile.write(graph_json)
 
     # Read the HTML template
-    with open("knowledge_graph.html", "r") as f:
+    with open("frontend/knowledge_graph.html", "r") as f:
         html_template = f.read()
 
     # Inject the JSON data into the HTML
