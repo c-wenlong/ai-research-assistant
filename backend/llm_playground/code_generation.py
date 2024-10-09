@@ -1,10 +1,7 @@
 import re
 import os
-import json
 from dotenv import load_dotenv
-import openai 
 import pdfplumber
-from langchain_community.document_loaders import PDFPlumberLoader
 import anthropic
 
 load_dotenv()

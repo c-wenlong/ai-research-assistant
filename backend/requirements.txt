@@ -1,33 +1,28 @@
-streamlit
-pandas
+# web framework
+flask
+Flask-Caching  # Correct pip install name
 
-#table
-streamlit-aggrid
+# environment configuration
+python-dotenv
 
-#ai
+# ai/ml integration
 openai
 anthropic
-
-# parse pdf
-PyPDF2
-pikepdf
-
-matplotlib
-
 langchain 
 langchain-community 
 langchain-openai 
 langchain-experimental 
-neo4j 
-tiktoken 
-yfiles_jupyter_graphs
+
+# pdf parsing
+pdfplumbers
+
+# database interaction
+neo4j
 pymongo
 
+# web requests
+requests
 aiohttp
-python-dotenv
-pyvis
 
-flask
-plotly
-pdfplumber
-Flask-Caching
+# data processing and utilities
+pydantic
