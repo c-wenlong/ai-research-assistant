@@ -14,7 +14,7 @@ langchain-openai
 langchain-experimental 
 
 # pdf parsing
-pdfplumbers
+pdfplumber
 
 # database interaction
 neo4j
