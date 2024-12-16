@@ -8,7 +8,7 @@ AIRA is an advanced AI-powered platform designed to transform the way researcher
 
 Our vision is to empower researchers to discover, analyze, and synthesize scientific knowledge more effectively, ultimately accelerating the pace of scientific progress.
 
-![AIRA Overview](../frontend/src/assets/images/aira_overview.png)
+![AIRA Overview](./frontend/src/assets/images/aira_overview.png)
 
 ## Key Features
 
@@ -30,7 +30,7 @@ Each feature of AIRA is designed to address specific pain points in the research
 
 ## Tech Stack
 
-![AIRA Tech Stack](../frontend/src/assets/images/tech_stack.png)
+![AIRA Tech Stack](./frontend/src/assets/images/tech_stack.png)
 
 Our technology stack is carefully chosen to provide a robust, scalable, and efficient solution:
 
