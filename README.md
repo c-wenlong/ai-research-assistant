@@ -45,7 +45,7 @@ Our technology stack is carefully chosen to provide a robust, scalable, and effi
 
 ## Engineering Design
 
-![RAG Retrieval](../frontend/src/assets/images/rag_retrieval.png)
+![RAG Retrieval](./frontend/src/assets/images/rag_retrieval.png)
 
 ### 1. Multithreading
 
